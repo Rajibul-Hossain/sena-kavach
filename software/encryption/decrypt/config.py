@@ -1,0 +1,4 @@
+# AES-128 Key (Must be exactly 16 bytes)
+AES_KEY = b'\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c'
+PROTOCOL_VERSION = 0x01
+NODE_ID = 0x10

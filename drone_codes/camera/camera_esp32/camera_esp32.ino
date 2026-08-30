@@ -101,16 +101,11 @@ void startCameraServer() {
     httpd_register_uri_handler(stream_httpd, &stream_uri);
   }
 }
-
-// ==========================================
-// 4. SETUP & MAIN LOOP
-// ==========================================
 void setup() {
   Serial.begin(115200);
-  
-  // 1. Init Servo (UPDATED FOR ESP32 CORE V3.x.x)
+
   ledcAttach(SERVO_PIN, PWM_FREQ, PWM_RES);
-  setServoAngle(0); // Start with payload door closed
+  setServoAngle(0);
 
   // 2. Init Camera
   camera_config_t config;

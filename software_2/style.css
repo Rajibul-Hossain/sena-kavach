@@ -1,0 +1,604 @@
+/* ==========================================
+   ARMY TACTICAL DESIGN VARIABLES
+   ========================================== */
+:root {
+    --bg-dark: #0a0c0a; /* Deep forest black */
+    --accent-tactical: #76b900; /* Night-vision neon green */
+    --accent-olive: #3e4a2e; /* Army olive drab */
+    --accent-dark-green: #1a2415;
+    --danger-red: #ff453a;
+    
+    /* Frosted Glass with Olive Tint */
+    --glass-bg: rgba(15, 22, 15, 0.65);
+    --glass-border: rgba(118, 185, 0, 0.25);
+    --glass-border-glow: rgba(118, 185, 0, 0.6);
+    --input-bg: rgba(5, 8, 5, 0.8);
+    
+    --text-primary: #f0f4f0;
+    --text-muted: rgba(240, 244, 240, 0.55);
+    
+    --radius-asymmetric: 90px 24px 24px 24px;
+    --radius-pill: 50px;
+    --radius-sm: 50px;
+    
+    --anim-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --anim-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background-color: var(--bg-dark);
+    /* Subtle topographical/tactical noise background overlay */
+    background-image: radial-gradient(circle at 50% 50%, rgba(118, 185, 0, 0.03) 0%, transparent 100%), 
+                      repeating-linear-gradient(0deg, transparent, transparent 4px, rgba(118, 185, 0, 0.02) 4px, rgba(118, 185, 0, 0.02) 5px);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+}
+/* ==========================================
+   CANVAS & AMBIENT GLOWS
+   ========================================== */
+#bg-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.ambient-glow {
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    filter: blur(140px);
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.45;
+}
+
+.ambient-glow.top-left {
+    top: -100px;
+    left: -100px;
+    background: radial-gradient(circle, var(--accent-olive), transparent 70%);
+}
+
+.ambient-glow.bottom-right {
+    bottom: -100px;
+    right: -100px;
+    background: radial-gradient(circle, var(--accent-tactical), transparent 70%);
+    opacity: 0.2; /* Dimmer for stealth look */
+}
+
+/* ==========================================
+   TACTICAL GLASS CARD
+   ========================================== */
+.portal-wrapper {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 460px;
+    padding: 20px;
+}
+
+.tactical-glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(35px);
+    -webkit-backdrop-filter: blur(35px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-asymmetric);
+    padding: 44px 36px 32px 36px;
+    box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 30px rgba(0, 242, 254, 0.15);
+    transition: border-color 0.4s var(--anim-smooth), box-shadow 0.4s var(--anim-smooth);
+    animation: scalePopIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.tactical-glass-card:hover {
+    border-color: var(--glass-border-glow);
+    box-shadow: 
+        0 30px 70px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 0 40px rgba(0, 242, 254, 0.25);
+}
+
+/* ==========================================
+   HEADER & BADGE
+   ========================================== */
+.card-header {
+    margin-bottom: 32px;
+}
+
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-teal);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-teal);
+    animation: pulse 2s infinite;
+}
+
+.status-text {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent-teal);
+}
+
+.portal-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.portal-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* ==========================================
+   INPUT FIELDS
+   ========================================== */
+.input-field-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--input-bg);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    margin-bottom: 18px;
+    overflow: hidden;
+    transition: all 0.3s var(--anim-smooth);
+}
+
+.input-field-group:focus-within {
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 20px rgba(0, 242, 254, 0.25);
+    background: rgba(4, 16, 32, 0.9);
+}
+
+.input-icon-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 52px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    transition: color 0.3s ease;
+}
+
+.input-field-group:focus-within .input-icon-box {
+    color: var(--accent-teal);
+}
+
+.input-field-group input {
+    width: 100%;
+    height: 52px;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.input-field-group input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.toggle-password-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+}
+
+.toggle-password-btn:hover {
+    color: var(--accent-teal);
+}
+
+.utility-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    font-size: 13px;
+}
+
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    color: var(--text-muted);
+}
+
+.custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.checkmark {
+    width: 18px;
+    height: 18px;
+    background: var(--input-bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    margin-right: 10px;
+    transition: all 0.2s ease;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+    border-color: var(--accent-teal);
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+    background: var(--accent-teal);
+    border-color: var(--accent-teal);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 4px;
+    height: 9px;
+    border: solid #000;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.forgot-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.forgot-link:hover {
+    color: var(--accent-teal);
+    text-decoration: underline;
+}
+.btn-primary-capsule {
+    width: 100%;
+    height: 54px;
+    background: linear-gradient(135deg, var(--accent-olive), var(--accent-tactical));
+    border: 1px solid rgba(118, 185, 0, 0.4);
+    border-radius: var(--radius-pill);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 2px; /* Wider spacing for military stencil feel */
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 10px 25px rgba(118, 185, 0, 0.2);
+    transition: all 0.3s var(--anim-spring);
+}
+
+.btn-primary-capsule:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(118, 185, 0, 0.4);
+    border-color: var(--accent-tactical);
+}
+
+.btn-secondary-block {
+    width: 100%;
+    height: 48px;
+    background: rgba(118, 185, 0, 0.05);
+    border: 1px dashed rgba(118, 185, 0, 0.3); /* Dashed border for tactical feel */
+    border-radius: var(--radius-sm);
+    color: var(--accent-tactical);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all 0.3s var(--anim-smooth);
+}
+
+.btn-secondary-block:hover {
+    background: rgba(118, 185, 0, 0.15);
+    border-color: var(--accent-tactical);
+    box-shadow: 0 0 15px rgba(118, 185, 0, 0.2);
+}
+.tactical-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 24px 0;
+}
+
+.tactical-divider::before,
+.tactical-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.tactical-divider span {
+    padding: 0 14px;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+
+
+/* ==========================================
+   ERROR BANNER & FOOTER
+   ========================================== */
+.error-banner {
+    background: rgba(255, 69, 58, 0.15);
+    border: 1px solid var(--danger-red);
+    color: var(--danger-red);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    text-align: center;
+}
+
+.hidden {
+    display: none;
+}
+
+.card-footer {
+    margin-top: 28px;
+    text-align: center;
+}
+
+.card-footer p {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 480px) {
+    .tactical-glass-card {
+        padding: 32px 24px 24px 24px;
+        border-top-left-radius: 60px;
+    }
+}
+@keyframes scalePopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+ 
+    60% {
+        opacity: 1;
+        transform: scale(1.25); /* The 125% scale peak */
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+}
+/* ==========================================
+   ELITE BRANDING: SENA KAVACH (CAMO MASK)
+   ========================================== */
+:root {
+    /* Military Camouflage Color Palette */
+    --camo-dark: #121a12;     /* Deep Jungle */
+    --camo-olive: #3e4a2e;    /* Standard Olive Drab */
+    --camo-khaki: #5d6849;    /* Faded Khaki */
+    --camo-neon: #76b900;     /* Tactical UI Green */
+}
+
+.sena-brand-elite {
+    position: absolute;
+    top: 40px;
+    left: 50px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    z-index: 100;
+}
+
+/* ------------------------------------------
+   1. VECTOR PATH DRAWING LOGO
+   ------------------------------------------ */
+.elite-logo-wrapper {
+    width: 65px;
+    height: 65px;
+    position: relative;
+    /* Spring pop-in for the logo */
+    transform: scale(0);
+    animation: elitePop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards;
+}
+
+.elite-shield {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg); /* Aligns the circle drawing path to start at 12 o'clock */
+}
+
+/* The solid outer ring draws itself, then spins */
+.ring-outer {
+    fill: none;
+    stroke: rgba(118, 185, 0, 0.3);
+    stroke-width: 2;
+    stroke-dasharray: 283; /* Exact circumference of r=45 */
+    stroke-dashoffset: 283;
+    transform-origin: 50px 50px;
+    animation: 
+        drawVector 1.5s cubic-bezier(0.8, 0, 0.2, 1) 0.5s forwards, 
+        spinRadar 12s linear infinite 2s;
+}
+
+/* The dashed inner ring spins in reverse continuously */
+.ring-inner {
+    fill: none;
+    stroke: rgba(118, 185, 0, 0.6);
+    stroke-width: 3;
+    stroke-dasharray: 6 12; /* Creates radar dash effect */
+    transform-origin: 50px 50px;
+    animation: spinRadarReverse 20s linear infinite;
+}
+
+/* The shield draws its own outline from the top down */
+.shield-core {
+    fill: rgba(62, 74, 46, 0.3);
+    stroke: url(#camoGrad);
+    stroke-width: 3;
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    animation: drawVector 1.2s cubic-bezier(0.8, 0, 0.2, 1) 1s forwards;
+}
+
+/* ------------------------------------------
+   2. TEXT REVEAL & CAMO MASKING
+   ------------------------------------------ */
+.elite-text-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Typewriter fade-in for the subtitle */
+.elite-subtitle {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--camo-neon);
+    letter-spacing: 4px;
+    opacity: 0;
+    transform: translateY(-5px);
+    animation: dropFade 0.6s ease forwards 1.8s;
+}
+
+.elite-title {
+    font-size: 46px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    margin: 0;
+    line-height: 1.1;
+    position: relative;
+    
+    /* THE MASK: Animated diagonal camouflage stripe pattern */
+    background: repeating-linear-gradient(
+        45deg,
+        var(--camo-dark) 0%,
+        var(--camo-dark) 10%,
+        var(--camo-olive) 10%,
+        var(--camo-olive) 20%,
+        var(--camo-khaki) 20%,
+        var(--camo-khaki) 30%,
+        var(--camo-neon) 30%,
+        var(--camo-neon) 31%
+    );
+    background-size: 200% 200%;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-stroke: 1.5px rgba(118, 185, 0, 0.7);
+    clip-path: inset(0 100% 0 0);
+    animation: 
+        wipeReveal 1.2s cubic-bezier(0.8, 0, 0.2, 1) 1s forwards, 
+        camoScroll 15s linear infinite;
+}
+.elite-title::before {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--camo-neon); 
+    opacity: 0;
+    z-index: -1;
+    text-shadow: 2px 0 var(--alert-red), -2px 0 #00f2fe;
+    animation: tacticalGlitch 5s infinite 3s;
+}
+@keyframes elitePop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+@keyframes drawVector {
+    to { stroke-dashoffset: 0; }
+}
+@keyframes spinRadar {
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes spinRadarReverse {
+    100% { transform: rotate(-360deg); }
+}
+
+@keyframes dropFade {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wipeReveal {
+    to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes camoScroll {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+}
+
+@keyframes tacticalGlitch {
+    0%, 96%, 100% { opacity: 0; transform: translate(0, 0); }
+    96.5% { opacity: 0.8; transform: translate(-3px, 2px); }
+    97.5% { opacity: 0.4; transform: translate(3px, -2px); }
+    98.5% { opacity: 0.9; transform: translate(-3px, -2px); }
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .sena-brand-elite { top: 25px; left: 25px; }
+    .elite-title { font-size: 28px; }
+    .elite-logo-wrapper { width: 45px; height: 45px; }
+}

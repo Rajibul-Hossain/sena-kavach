@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENA KAVACH | TACTICAL COMMAND</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+    
+    <div class="dashboard-bg"></div>
+    
+    <div class="dashboard-wrapper">
+        <nav class="top-nav glass-panel">
+            <div class="nav-brand">
+                <div class="status-pulse"></div>
+                <h1>SENA KAVACH</h1>
+            </div>
+            <div class="nav-controls">
+                <div class="unit-selector-wrapper">
+                    <label for="unit-select" class="mono-label">Select Personnel</label>
+                    <select id="unit-select" class="tactical-select">
+                        <option value="" disabled selected>SCANNING FREQUENCIES...</option>
+                    </select>
+                </div>
+                <button id="btn-logout" class="btn-outline-red">TERMINATE LINK</button>
+            </div>
+        </nav>
+
+        <main class="telemetry-grid">
+            
+            <!-- Row 1: Profile (2) | Geo (2, spans 2 rows) -->
+            <section class="glass-card widget-identity col-span-2">
+                <div class="card-header">
+                    <h2>UNIT PROFILE</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <span id="ui-obstacle-badge" class="badge badge-neutral">PATH CLEAR</span>
+                        <span id="connection-badge" class="badge badge-offline">OFFLINE</span>
+                    </div>
+                </div>
+                <div class="identity-content">
+                    <div class="avatar-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    </div>
+                    <div class="identity-details">
+                        <p class="mono-text text-dim">SERVICE NO.</p>
+                        <h3 id="ui-army-no" class="data-large">AWAITING SELECTION</h3>
+                    </div>
+                </div>
+            </section>
+
+            <section class="glass-card widget-geo col-span-2 row-span-2">
+                <div class="card-header">
+                    <h2>LOCATION & KINEMATICS</h2>
+                    <span class="badge badge-neutral">SATS: <span id="ui-sats" style="color:var(--camo-neon);">0</span></span>
+                </div>
+                
+                <div class="tactical-radar-display">
+                    <div class="radar-grid-bg"></div>
+                    <svg class="radar-hud" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="200" cy="200" r="190" fill="none" stroke="var(--camo-neon)" stroke-width="8" stroke-dasharray="30 10" opacity="0.6"/>
+                        <circle cx="200" cy="200" r="175" fill="none" stroke="var(--camo-neon)" stroke-width="6" stroke-dasharray="2 4" opacity="0.4"/>
+                        <circle cx="200" cy="200" r="165" fill="none" stroke="var(--camo-neon)" stroke-width="2" opacity="0.7"/>
+                        <line x1="10" y1="200" x2="390" y2="200" stroke="var(--camo-neon)" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="200" y1="10" x2="200" y2="390" stroke="var(--camo-neon)" stroke-width="1.5" opacity="0.5"/>
+                    </svg>
+                    <div class="radar-beam-sweep"></div>
+                    <div class="blip active-target" id="radar-target"></div>
+                </div>
+                
+                <div class="coord-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="coord-box">
+                        <span class="mono-label">LATITUDE</span>
+                        <span id="ui-lat" class="mono-data text-neon">0.000000</span>
+                    </div>
+                    <div class="coord-box">
+                        <span class="mono-label">LONGITUDE</span>
+                        <span id="ui-lng" class="mono-data text-neon">0.000000</span>
+                    </div>
+                    <div class="coord-box">
+                        <span class="mono-label">ALTITUDE</span>
+                        <span id="ui-alt" class="mono-data">0.0 M</span>
+                    </div>
+                    <div class="coord-box">
+                        <span class="mono-label">SPEED</span>
+                        <span id="ui-speed" class="mono-data">0.0 KM/H</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Row 2: Map (2) -->
+            <section class="glass-card widget-map col-span-2" id="widget-map" style="cursor: pointer; position: relative;">
+                <div class="card-header">
+                    <h2>SATELLITE TOPOLOGY</h2>
+                    <span id="map-status" class="badge badge-warning blink">AWAITING SIGNAL</span>
+                </div>
+                <div class="map-container-wrapper">
+                    <div id="tactical-map" class="tactical-map-layer"></div>
+                    <div class="media-overlay"></div>
+                    <div class="click-prompt"><span class="pulse-ring"></span><span class="mono-label text-neon">CLICK TO EXPAND SATELLITE FEED</span></div>
+                </div>
+            </section>
+
+            <!-- Row 3: Bio (1) | Attitude/Gyro (1) | Optics (2) -->
+
+
+            <!-- NEW GYROSCOPE WIDGET -->
+            <section class="glass-card widget-attitude" style="grid-column: span 1;">
+                <div class="card-header">
+                    <h2>GYROSCOPE</h2>
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--camo-neon)" stroke-width="2" fill="none" opacity="0.8"><circle cx="12" cy="12" r="10"></circle><ellipse cx="12" cy="12" rx="10" ry="4"></ellipse><line x1="12" y1="2" x2="12" y2="22"></line></svg>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-grow: 1; padding-top: 10px;">
+                    <div class="gas-readout">
+                        <span class="mono-label">PITCH</span>
+                        <h3 class="gauge-value"><span id="ui-pitch" class="text-neon">0.0</span><span class="gauge-unit">°</span></h3>
+                    </div>
+                    <div class="gas-readout" style="text-align: right;">
+                        <span class="mono-label">ROLL</span>
+                        <h3 class="gauge-value"><span id="ui-roll" class="text-neon">0.0</span><span class="gauge-unit">°</span></h3>
+                    </div>
+                </div>
+            </section>
+
+            <section class="glass-card widget-media" id="widget-optics" style="grid-column: span 2;">
+                <div class="card-header">
+                    <h2>VISUAL CAPTURES</h2>
+                    <span id="optics-badge" class="badge badge-neutral">AWAITING LINK</span>
+                </div>
+                <div class="media-stack-container" id="optic-stack-container" style="height: 120px; margin-top: 5px;">
+                    <div class="media-card stack-3"><img id="stack-img-3" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Optic 3"><div class="media-overlay"></div></div>
+                    <div class="media-card stack-2"><img id="stack-img-2" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Optic 2"><div class="media-overlay"></div></div>
+                    <div class="media-card stack-1">
+                        <img id="stack-img-1" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Optic 1">
+                        <div class="media-overlay"></div>
+                        <div class="click-prompt" style="bottom: 5px;"><span class="pulse-ring"></span><span class="mono-label text-neon">CLICK TO EXPAND DATASET</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Row 4: Environmental Sensor Suite (Full Width: 4 cols) -->
+            <section class="glass-card widget-gas" style="grid-column: span 4;">
+                <div class="card-header">
+                    <h2>ENVIRONMENTAL SUITE</h2>
+                    <span id="ui-gas-status" class="badge badge-online">AIR SAFE</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: end; margin-bottom: 20px;">
+                    <div class="gas-readout">
+                        <span class="mono-label">ATMOSPHERE (GAS)</span>
+                        <h3 class="gauge-value"><span id="ui-gas-val" class="text-neon">--</span><span class="gauge-unit">PPM</span></h3>
+                    </div>
+                    <div class="gas-readout" style="text-align: center;">
+                        <span class="mono-label">TEMPERATURE</span>
+                        <h3 class="gauge-value" style="justify-content: center;"><span id="ui-temp-val">--</span></h3>
+                    </div>
+                    <div class="gas-readout" style="text-align: right;">
+                        <span class="mono-label">HUMIDITY</span>
+                        <h3 class="gauge-value" style="justify-content: flex-end;"><span id="ui-hum-val">--</span></h3>
+                    </div>
+                </div>
+                
+                <div class="progress-bar"><div id="bar-gas" class="progress-fill"></div></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- macOS Sonoma UAV HUD -->
+    <div id="uav-window" class="sonoma-window">
+        <header class="sonoma-header" id="uav-header">
+            <div class="mac-controls">
+                <div class="mac-btn close-btn" id="uav-close"></div>
+                <div class="mac-btn min-btn" id="uav-min"></div>
+                <div class="mac-btn max-btn"></div>
+            </div>
+            <div class="window-title mono-tag">PLUTO 1.2 // ESP32 OPTICS</div>
+        </header>
+        <div class="sonoma-body" id="uav-body"> 
+            <div class="video-feed-container">
+                <img id="esp32-stream" src="http://192.168.137.68:81/stream" alt="UAV Feed">
+                <div class="feed-overlay"><span class="pulse-ring"></span> LIVE FEED</div>
+            </div>
+            <div class="uav-controls">
+                <button id="btn-deploy-servo" class="btn-execute" style="width: 100%; height: 50px; margin-top: 0;">
+                    <span class="btn-text">ACTUATE SERVO [90°]</span>
+                    <span class="btn-deco">[ CMD ]</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optics Expansion Modal -->
+    <div class="optics-modal-overlay" id="optics-modal">
+        <div class="optics-modal-content" id="optics-modal-content">
+            <header class="modal-header">
+                <div class="nav-brand"><div class="status-pulse"></div><h2>INTEL DATABASE</h2></div>
+                <button class="btn-close-modal" id="btn-close-optics"><svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </header>
+            <div class="modal-body">
+                <div class="media-grid" id="modal-image-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expanded Topological Map Modal -->
+    <div class="optics-modal-overlay" id="map-modal">
+        <div class="optics-modal-content map-modal-content" id="map-modal-content">
+            <header class="modal-header">
+                <div class="nav-brand"><div class="status-pulse"></div><h2>TOPOLOGICAL SATELLITE FEED</h2></div>
+                <button class="btn-close-modal" id="btn-close-map"><svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </header>
+            <div class="modal-body expanded-map-layout">
+                <!-- Large Leaflet Container -->
+                <div id="expanded-map" class="tactical-map-layer expanded-map-container"></div>
+                
+                <!-- Side Telemetry Panel -->
+                <div class="map-data-panel">
+                    <h3 class="mono-tag" style="margin-bottom: 20px;">LIVE GEOLOCATION TELEMETRY</h3>
+                    
+                    <div class="coord-box mt-2">
+                        <span class="mono-label">UNIT ID</span>
+                        <span id="modal-unit" class="mono-data text-neon">--</span>
+                    </div>
+                    
+                    <div class="coord-box mt-2">
+                        <span class="mono-label">LATITUDE</span>
+                        <span id="modal-lat" class="mono-data">0.000000</span>
+                    </div>
+                    
+                    <div class="coord-box mt-2">
+                        <span class="mono-label">LONGITUDE</span>
+                        <span id="modal-lng" class="mono-data">0.000000</span>
+                    </div>
+                    
+                    <div class="coord-box mt-2">
+                        <span class="mono-label">ALTITUDE MSL</span>
+                        <span id="modal-alt" class="mono-data">0.0 M</span>
+                    </div>
+                    
+                    <div class="coord-box mt-2">
+                        <span class="mono-label">GROUND SPEED</span>
+                        <span id="modal-speed" class="mono-data">0.0 KM/H</span>
+                    </div>
+
+                    <div class="coord-box mt-2">
+                        <span class="mono-label">SATELLITE UPLINKS</span>
+                        <span id="modal-sats" class="mono-data" style="color:var(--camo-neon);">0</span>
+                    </div>
+                    
+                    <div style="flex-grow: 1;"></div>
+                    <div class="hud-crosshair-decorative">
+                        <svg viewBox="0 0 100 100" stroke="var(--camo-neon)" stroke-width="1" fill="none" opacity="0.3">
+                            <circle cx="50" cy="50" r="40"/>
+                            <line x1="50" y1="0" x2="50" y2="100"/>
+                            <line x1="0" y1="50" x2="100" y2="50"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI OVERWATCH MODAL -->
+    <div class="optics-modal-overlay ai-alert-overlay" id="ai-modal">
+        <div class="optics-modal-content ai-alert-box">
+            <header class="modal-header alert-header">
+                <div class="nav-brand">
+                    <div class="status-pulse alert-pulse"></div>
+                    <h2 class="alert-title">TACTICAL AI OVERRIDE</h2>
+                </div>
+            </header>
+            <div class="modal-body ai-body">
+                <div class="ai-grid">
+                    <div class="ai-evidence-col">
+                        <h3 class="mono-tag">CAPTURED VISUAL INTEL</h3>
+                        <div class="grid-img ai-img-wrapper">
+                            <img id="ai-evidence-img" src="" alt="Capture">
+                        </div>
+                        <div class="coord-box mt-2">
+                            <span class="mono-label">EVENT TIMESTAMP</span>
+                            <span id="ai-timestamp" class="mono-text text-neon">--:--:--</span>
+                        </div>
+                        <div class="coord-box mt-2">
+                            <span class="mono-label">HARDWARE TRIPWIRE TRIGGER</span>
+                            <span id="ai-hardware" class="mono-text text-dim">--</span>
+                        </div>
+                    </div>
+                    <div class="ai-report-col">
+                        <h3 class="mono-tag">TENSORFLOW NEURAL EVALUATION</h3>
+                        <div class="ai-report-card">
+                            <span class="mono-label">AI CLASSIFICATION</span>
+                            <h2 id="ai-classification" class="data-large text-neon blink">ANALYZING...</h2>
+                            <span class="mono-label">CONFIDENCE SCORE</span>
+                            <h3 id="ai-confidence" class="gauge-value mb-20">--%</h3>
+                            <span class="mono-label">DEDUCTIVE REASONING</span>
+                            <p id="ai-reasoning" class="ai-reasoning-box">Connecting to local microservice...</p>
+                        </div>
+                        <button id="btn-dismiss-ai" class="btn-execute width-full">
+                            <span class="btn-text">ACKNOWLEDGE & DISMISS</span>
+                            <span class="btn-deco">[ CLEAR ]</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

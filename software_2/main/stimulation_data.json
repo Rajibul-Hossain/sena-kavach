@@ -1,0 +1,22 @@
+{
+  "active_soldiers": {
+    "101": {
+      "army_no": "CMD-101",
+      "status": "ACTIVE_COMBAT",
+      "timestamp": 1715000000,
+      "location": {
+        "lat": 28.6139,
+        "lon": 77.2090,
+        "city": "NEW DELHI // SECTOR 7"
+      },
+      "biometrics": {
+        "bpm": 115,
+        "spo2": 98
+      },
+      "atmosphere": {
+        "type": "NITROGEN (N2)",
+        "ppm": 1200
+      }
+    }
+  }
+}

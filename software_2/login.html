@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tactical Command | Commander Login</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="sena-brand-elite">
+        <div class="elite-logo-wrapper">
+            <svg class="elite-shield" viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="camoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#3e4a2e" />
+                        <stop offset="50%" stop-color="#76b900" />
+                        <stop offset="100%" stop-color="#1a2415" />
+                    </linearGradient>
+                </defs>
+                <circle class="ring-outer" cx="50" cy="50" r="45" />
+                <!-- Inner rotating dashed ring -->
+                <circle class="ring-inner" cx="50" cy="50" r="38" />
+                <!-- Center Shield Path -->
+                <path class="shield-core" d="M50 20 L75 32 V55 C75 75 50 88 50 88 C50 88 25 75 25 55 V32 Z" />
+            </svg>
+        </div>
+
+        <!-- Masked Camouflage Text Engine -->
+        <div class="elite-text-container">
+            <span class="elite-subtitle">Army Public School Kolkata</span>
+            <h1 class="elite-title" data-text="SENA KAVACH">SENA KAVACH</h1>
+        </div>
+
+    </div>
+    <canvas id="bg-canvas"></canvas>
+    <div class="ambient-glow top-left"></div>
+    <div class="ambient-glow bottom-right"></div>
+
+    <main class="portal-wrapper"> 
+        <div class="tactical-glass-card">
+
+            <header class="card-header">
+                <div class="badge-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">IND-ARMY</span>
+                </div>
+                <h1 class="portal-title">COMMAND LOGIN</h1>
+                <p class="portal-subtitle">Enter credentials to initialize tactical link</p>
+            </header>
+
+            <form id="login-form" autocomplete="off">
+                
+                <div class="input-field-group">
+                    <div class="input-icon-box">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <input type="text" id="commander-id" placeholder="Command Service No." required>
+                </div>
+                <div class="input-field-group">
+                    <div class="input-icon-box">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <input type="password" id="commander-key" placeholder="Security Key" required>
+                    <button type="button" id="toggle-password" class="toggle-password-btn" aria-label="Toggle Password Visibility">
+                        <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="utility-row">
+                    <label class="custom-checkbox">
+                        <input type="checkbox" id="remember-me">
+                        <span class="checkmark"></span>
+                        <span class="label-text">Remember Me</span>
+                    </label>
+                    <a href="#" class="forgot-link">Forgot Password?</a>
+                </div>
+                <div id="auth-error" class="error-banner hidden"></div>
+                <button type="submit" class="btn-primary-capsule">
+                    <span>AUTHENTICATE</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+
+            </form>
+
+            <!-- Divider Line -->
+            <div class="tactical-divider">
+                <span>OR</span>
+            </div>
+
+            <!-- Secondary Action Button -->
+            <button type="button" class="btn-secondary-block" id="btn-register">
+                REQUEST UNIT ACCESS
+            </button>
+
+            <!-- Footer Meta -->
+            <footer class="card-footer">
+                <p>Restricted Access • Indian Defense Protocol Standard</p>
+            </footer>
+
+        </div>
+    </main>
+
+    <script type="module" src="login.js"></script>
+</body>
+</html>

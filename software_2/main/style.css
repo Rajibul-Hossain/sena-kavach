@@ -1,0 +1,847 @@
+/* ==========================================================================
+   SENA KAVACH // MASTER STYLESHEET
+   UI ENGINE: iOS Glassmorphism + One UI Architecture + Tactical Spec
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+:root {
+    /* Military Tactical Color Palette */
+    --bg-void: #060906;        /* Pitch black forest */
+    --camo-dark: #121a12;      /* Deep Jungle */
+    --camo-olive: #3e4a2e;     /* Standard Olive Drab */
+    --camo-khaki: #5d6849;     /* Faded Khaki */
+    --camo-neon: #76b900;      /* Night-Vision Green */
+    --camo-neon-dim: rgba(118, 185, 0, 0.15);
+    
+    --alert-red: #ff3333;
+    --alert-red-dim: rgba(255, 51, 51, 0.15);
+    --cyan-oxy: #00f2fe;
+
+    /* Apple iOS Frosted Glass Engine */
+    --glass-bg: rgba(18, 25, 18, 0.45);
+    --glass-border: rgba(118, 185, 0, 0.25);
+    --glass-border-glow: rgba(118, 185, 0, 0.5);
+    
+    /* Typography */
+    --text-main: #f0f4f0;
+    --text-dim: #8c9c8c;
+    --font-ui: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Samsung One UI Radiuses */
+    --radius-xl: 32px;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 8px;
+    
+    /* Physics */
+    --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================
+   GLOBAL RESET
+   ========================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: var(--bg-void);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ==========================================================================
+   MODULE 1: ELITE LOGIN PORTAL (login.html)
+   ========================================================================== */
+.sena-brand-elite {
+    position: absolute; top: 40px; left: 50px;
+    display: flex; align-items: center; gap: 24px; z-index: 100;
+}
+
+.elite-logo-wrapper {
+    width: 65px; height: 65px; position: relative;
+    transform: scale(0);
+    animation: elitePop 0.8s var(--spring) 0.2s forwards;
+}
+
+.elite-shield { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-outer { fill: none; stroke: rgba(118, 185, 0, 0.3); stroke-width: 2; stroke-dasharray: 283; stroke-dashoffset: 283; transform-origin: 50px 50px; animation: drawVector 1.5s var(--smooth) 0.5s forwards, spinRadar 12s linear infinite 2s; }
+.ring-inner { fill: none; stroke: rgba(118, 185, 0, 0.6); stroke-width: 3; stroke-dasharray: 6 12; transform-origin: 50px 50px; animation: spinRadarReverse 20s linear infinite; }
+.shield-core { fill: rgba(62, 74, 46, 0.3); stroke: url(#camoGrad); stroke-width: 3; stroke-dasharray: 200; stroke-dashoffset: 200; animation: drawVector 1.2s var(--smooth) 1s forwards; }
+
+.elite-text-container { display: flex; flex-direction: column; justify-content: center; }
+.elite-subtitle { font-family: var(--font-mono); font-size: 11px; color: var(--camo-neon); letter-spacing: 4px; opacity: 0; transform: translateY(-5px); animation: dropFade 0.6s ease forwards 1.8s; }
+
+.elite-title {
+    font-size: 46px; font-weight: 900; letter-spacing: 5px; margin: 0; line-height: 1.1; position: relative;
+    background: repeating-linear-gradient(45deg, var(--camo-dark) 0%, var(--camo-dark) 10%, var(--camo-olive) 10%, var(--camo-olive) 20%, var(--camo-khaki) 20%, var(--camo-khaki) 30%, var(--camo-neon) 30%, var(--camo-neon) 31%);
+    background-size: 200% 200%;
+    color: transparent; -webkit-background-clip: text; background-clip: text;
+    -webkit-text-stroke: 1.5px rgba(118, 185, 0, 0.7);
+    clip-path: inset(0 100% 0 0);
+    animation: wipeReveal 1.2s var(--smooth) 1s forwards, camoScroll 15s linear infinite;
+}
+
+.elite-title::before {
+    content: attr(data-text); position: absolute; left: 0; top: 0; color: var(--camo-neon); opacity: 0; z-index: -1;
+    text-shadow: 2px 0 var(--alert-red), -2px 0 var(--cyan-oxy);
+    animation: tacticalGlitch 5s infinite 3s;
+}
+
+.scanlines { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1)); background-size: 100% 4px; z-index: 999; pointer-events: none; opacity: 0.6; }
+.data-stream-container { position: absolute; top: 0; right: 0; width: 60%; height: 100%; padding: 40px; font-family: var(--font-mono); font-size: 12px; color: rgba(118, 185, 0, 0.1); word-break: break-all; overflow: hidden; line-height: 1.4; z-index: 1; mask-image: linear-gradient(to right, transparent, black 20%); -webkit-mask-image: linear-gradient(to right, transparent, black 20%); }
+
+.hud-layout { display: flex; height: 100vh; width: 100vw; position: relative; z-index: 10; }
+.glass-terminal { width: 500px; height: 100%; background: var(--glass-bg); backdrop-filter: saturate(180%) blur(50px); -webkit-backdrop-filter: saturate(180%) blur(50px); border-right: 1px solid var(--camo-neon-dim); box-shadow: 20px 0 50px rgba(0, 0, 0, 0.8); padding: 140px 50px 60px 50px; display: flex; flex-direction: column; justify-content: space-between; }
+
+.mono-tag { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--camo-neon); }
+.sys-status { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.pulse-ring { width: 8px; height: 8px; background: var(--camo-neon); border-radius: 50%; box-shadow: 0 0 10px var(--camo-neon); animation: pulse 2s infinite; }
+.hero-title { font-size: 48px; font-weight: 900; line-height: 1.1; letter-spacing: -2px; margin-bottom: 12px; }
+.hero-subtitle { font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); min-height: 20px; }
+
+.tactical-form { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 32px; }
+.mono-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; }
+.input-glass { display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius-sm); padding: 0 16px; height: 60px; transition: all 0.3s ease; }
+.input-glass:focus-within { border-color: var(--camo-neon); background: var(--camo-neon-dim); box-shadow: inset 0 0 20px var(--camo-neon-dim); }
+.prefix { font-family: var(--font-mono); color: var(--camo-neon); font-weight: 700; margin-right: 8px; }
+.input-glass input { background: transparent; border: none; outline: none; color: #fff; font-family: var(--font-mono); font-size: 16px; width: 100%; font-weight: 600; }
+.input-glass input::placeholder { color: rgba(255, 255, 255, 0.2); font-weight: 400; }
+
+.btn-execute { background: var(--camo-neon); color: #000; border: none; height: 60px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; padding: 0 24px; cursor: pointer; margin-top: 16px; transition: transform 0.2s var(--spring), box-shadow 0.2s ease, background 0.3s ease; }
+.btn-text { font-weight: 800; font-size: 16px; letter-spacing: 1px; }
+.btn-deco { font-family: var(--font-mono); font-size: 12px; font-weight: 700; opacity: 0.6; }
+.btn-execute:hover { box-shadow: 0 0 30px rgba(118, 185, 0, 0.4); }
+.btn-execute:active { transform: scale(0.97); }
+
+.error-readout { background: rgba(255, 42, 42, 0.1); border-left: 3px solid var(--alert-red); padding: 12px; }
+.text-red { color: var(--alert-red); }
+.hidden { display: none !important; }
+.terminal-footer { display: flex; justify-content: space-between; opacity: 0.5; }
+
+/* ==========================================================================
+   MODULE 2: TACTICAL DASHBOARD (index.html)
+   ========================================================================== */
+.dashboard-body {
+    background-color: var(--bg-void);
+    padding: 24px;
+    height: 100vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* Radar Grid Background Overlay */
+.dashboard-bg {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(118, 185, 0, 0.08) 0%, transparent 80%);
+    background-size: 100px 100px;
+    background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    z-index: -1;
+    pointer-events: none;
+}
+
+.dashboard-wrapper {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* --- Top Command Navigation --- */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(40px) saturate(150%);
+    -webkit-backdrop-filter: blur(40px) saturate(150%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.top-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 32px;
+}
+
+.nav-brand { display: flex; align-items: center; gap: 16px; }
+.status-pulse { width: 14px; height: 14px; background: var(--camo-neon); border-radius: 50%; box-shadow: 0 0 15px var(--camo-neon); animation: pulse 2s infinite; }
+.nav-brand h1 { font-size: 22px; font-weight: 900; letter-spacing: 2px; margin: 0; }
+.nav-brand span { color: var(--text-dim); font-weight: 600; }
+
+.nav-controls { display: flex; align-items: center; gap: 32px; }
+.unit-selector-wrapper { display: flex; flex-direction: column; gap: 6px; }
+
+.tactical-select {
+    appearance: none;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--glass-border);
+    color: var(--camo-neon);
+    font-family: var(--font-mono);
+    font-size: 14px; font-weight: 700;
+    padding: 12px 40px 12px 20px;
+    border-radius: var(--radius-sm);
+    cursor: pointer; outline: none;
+    transition: all 0.2s ease;
+}
+.tactical-select:focus { border-color: var(--camo-neon); box-shadow: 0 0 20px rgba(118, 185, 0, 0.25); }
+.tactical-select option { background: var(--camo-dark); color: #fff; font-weight: 600; }
+
+.btn-outline-red {
+    background: rgba(255, 51, 51, 0.05);
+    border: 1px solid rgba(255, 51, 51, 0.4);
+    color: var(--alert-red);
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 13px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s ease;
+}
+.btn-outline-red:hover { background: var(--alert-red-dim); border-color: var(--alert-red); box-shadow: 0 0 20px rgba(255, 51, 51, 0.2); }
+
+/* --- CSS Grid Architecture --- */
+.telemetry-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(200px, auto);
+    gap: 24px;
+}
+.col-span-2 { grid-column: span 2; }
+.row-span-2 { grid-row: span 2; }
+
+/* --- High-Density Glass Widgets --- */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(40px) saturate(150%);
+    -webkit-backdrop-filter: blur(40px) saturate(150%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl); /* Heavy Samsung One UI corners */
+    padding: 28px;
+    display: flex; flex-direction: column;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.5);
+    transition: transform 0.3s var(--smooth), border-color 0.3s ease;
+}
+.glass-card:hover { border-color: var(--glass-border-glow); }
+
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.card-header h2 { font-size: 14px; color: var(--text-dim); font-weight: 800; letter-spacing: 1.5px; margin: 0; }
+
+/* Badges */
+.badge { padding: 6px 14px; border-radius: 50px; font-family: var(--font-mono); font-size: 11px; font-weight: 800; letter-spacing: 1px; }
+.badge-offline { background: var(--alert-red-dim); color: var(--alert-red); border: 1px solid var(--alert-red); box-shadow: 0 0 15px rgba(255,51,51,0.2); }
+.badge-online { background: var(--camo-neon-dim); color: var(--camo-neon); border: 1px solid var(--camo-neon); box-shadow: 0 0 15px rgba(118,185,0,0.2); }
+.badge-neutral { background: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid rgba(255, 255, 255, 0.1); }
+
+/* Typography Engine */
+.mono-text { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
+.mono-data { font-family: var(--font-mono); font-size: 20px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+.text-dim { color: var(--text-dim); }
+.text-neon { color: var(--camo-neon); }
+.data-large { font-size: 42px; font-weight: 900; margin: 4px 0 12px 0; letter-spacing: -1px; }
+
+/* Identity Widget */
+.identity-content { display: flex; align-items: center; gap: 32px; flex-grow: 1; }
+.avatar-box {
+    width: 90px; height: 90px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    display: flex; justify-content: center; align-items: center;
+    color: var(--text-dim);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+.avatar-box svg { width: 40px; height: 40px; }
+
+/* Biometric Gauges */
+.gauge-container { display: flex; flex-direction: column; justify-content: center; flex-grow: 1; }
+.gauge-value { font-size: 48px; font-weight: 900; display: flex; align-items: baseline; gap: 8px; margin: 0; }
+.gauge-unit { font-size: 18px; color: var(--text-dim); font-weight: 700; }
+.progress-bar { width: 100%; height: 12px; background: rgba(0,0,0,0.6); border-radius: 6px; overflow: hidden; margin-top: 20px; border: 1px solid rgba(255,255,255,0.05); }
+.progress-fill { height: 100%; background: var(--camo-neon); width: 0%; transition: width 1s var(--spring), background-color 0.5s ease; box-shadow: 0 0 10px currentColor; }
+.bg-blue { background: var(--cyan-oxy); }
+
+/* Icons */
+.icon-pulse, .icon-oxy { width: 28px; height: 28px; }
+.icon-pulse { color: var(--alert-red); animation: heartbeat 1.2s infinite; }
+
+/* Diagnostics Grid */
+.diag-grid { display: flex; justify-content: space-between; flex-grow: 1; align-items: center; padding: 0 10px; }
+.diag-item { display: flex; flex-direction: column; gap: 10px; }
+/* ==========================================
+   ELITE TACTICAL RADAR (REFERENCE SYNCED)
+   ========================================== */
+.tactical-radar-display {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 380px; /* Constrains it perfectly within the One UI card */
+    margin: 0 auto 24px auto;
+    background: #020a02; /* Deep CRT green-black */
+    border: 1px solid rgba(118, 185, 0, 0.3);
+    border-radius: var(--radius-sm);
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* Background CRT Grid */
+.radar-grid-bg {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: 
+        linear-gradient(rgba(118, 185, 0, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(118, 185, 0, 0.15) 1px, transparent 1px);
+    background-size: 10% 10%; /* Creates 10x10 geometric grid */
+    z-index: 1;
+}
+
+/* Static Geometry Layer */
+.radar-hud {
+    position: absolute;
+    top: 5%; left: 5%; width: 90%; height: 90%;
+    z-index: 2;
+}
+
+/* Hard-Edged Sweep Beam */
+.radar-beam-sweep {
+    position: absolute;
+    top: 5%; left: 5%; width: 90%; height: 90%;
+    border-radius: 50%;
+    /* Creates the sharp leading edge fading backward perfectly */
+    background: conic-gradient(
+        from 0deg, 
+        transparent 0deg, 
+        transparent 260deg, 
+        rgba(118, 185, 0, 0.05) 320deg, 
+        rgba(118, 185, 0, 0.5) 359deg, 
+        rgb(37, 131, 0) 360deg
+    );
+    z-index: 3;
+    animation: tacticalSpin 4s linear infinite;
+    transform-origin: center center;
+    pointer-events: none;
+}
+
+/* Target Blips Engine */
+.blip {
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    z-index: 4;
+    opacity: 0;
+    transform: translate(-50%, -50%); /* Centers the blip precisely on coordinates */
+}
+
+/* Decoy Background Blips */
+.decoy-blip {
+    background: rgba(117, 185, 0, 0.342);
+    box-shadow: 0 0 8px rgba(118, 185, 0, 0.4);
+    animation: radarPing 4s infinite; /* Synchronized loosely with the 4s radar sweep */
+}
+
+/* The Live Telemetry Blip (Controlled by JS) */
+.active-target {
+    background: #fff;
+    box-shadow: 0 0 10px #fff, 0 0 25px var(--camo-neon), 0 0 40px var(--camo-neon);
+    animation: radarPing 2s infinite, activePulse 1s infinite alternate;
+}
+
+.coord-grid { 
+    display: flex; justify-content: space-between; 
+    background: rgba(0,0,0,0.4); 
+    padding: 16px; 
+    border-radius: var(--radius-md); 
+    border: 1px solid rgba(118, 185, 0, 0.1); 
+}
+.coord-box { display: flex; flex-direction: column; gap: 6px; }
+
+/* Physics Keyframes */
+@keyframes tacticalSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes radarPing {
+    0%, 100% { opacity: 0; transform: scale(0.5) translate(-50%, -50%); }
+    10% { opacity: 1; transform: scale(1.5) translate(-50%, -50%); }
+    20% { opacity: 0.8; transform: scale(1) translate(-50%, -50%); }
+    60% { opacity: 0; transform: scale(0.8) translate(-50%, -50%); }
+}
+
+@keyframes activePulse {
+    0% { filter: brightness(1); }
+    100% { filter: brightness(1.5); }
+}
+/* Crosshairs */
+.radar-container::before, .radar-container::after { content: ''; position: absolute; background: rgba(118, 185, 0, 0.2); }
+.radar-container::before { width: 100%; height: 1px; top: 50%; }
+.radar-container::after { width: 1px; height: 100%; left: 50%; }
+
+.radar-sweep {
+    position: absolute; width: 120%; height: 120%;
+    background: conic-gradient(from 0deg, transparent 75%, rgba(118, 185, 0, 0.5) 100%);
+    border-radius: 50%;
+    animation: spinRadar 3s linear infinite;
+}
+.target-dot {
+    position: absolute; width: 8px; height: 8px;
+    background: #fff; border-radius: 50%;
+    box-shadow: 0 0 15px #fff, 0 0 30px var(--camo-neon);
+    opacity: 0; transition: top 1s ease, left 1s ease, opacity 0.5s ease;
+    z-index: 5;
+}
+.coord-grid { display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.05); }
+.coord-box { display: flex; flex-direction: column; gap: 6px; }
+
+/* ==========================================
+   ANIMATION KEYFRAMES
+   ========================================== */
+@keyframes elitePop { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes drawVector { to { stroke-dashoffset: 0; } }
+@keyframes spinRadar { 100% { transform: rotate(360deg); } }
+@keyframes spinRadarReverse { 100% { transform: rotate(-360deg); } }
+@keyframes dropFade { to { opacity: 1; transform: translateY(0); } }
+@keyframes wipeReveal { to { clip-path: inset(0 0 0 0); } }
+@keyframes camoScroll { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
+@keyframes tacticalGlitch { 0%, 96%, 100% { opacity: 0; transform: translate(0, 0); } 96.5% { opacity: 0.8; transform: translate(-3px, 2px); } 97.5% { opacity: 0.4; transform: translate(3px, -2px); } 98.5% { opacity: 0.9; transform: translate(-3px, -2px); } }
+@keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes heartbeat { 0%, 100% { transform: scale(1); } 25% { transform: scale(1.15); } }
+
+/* ==========================================
+   RESPONSIVE DEGRADATION
+   ========================================== */
+@media (max-width: 1200px) {
+    .telemetry-grid { grid-template-columns: repeat(2, 1fr); }
+    .col-span-2 { grid-column: span 2; }
+}
+@media (max-width: 768px) {
+    .sena-brand-elite { top: 25px; left: 25px; }
+    .elite-title { font-size: 28px; }
+    .elite-logo-wrapper { width: 45px; height: 45px; }
+    .glass-terminal { width: 100%; }
+    .data-stream-container { display: none; }
+    
+    .telemetry-grid { grid-template-columns: 1fr; }
+    .col-span-2, .row-span-2 { grid-column: span 1; grid-row: span 1; }
+    .nav-controls { flex-direction: column; align-items: flex-end; }
+    .top-nav { flex-direction: column; align-items: flex-start; gap: 20px; }
+    .nav-controls { width: 100%; align-items: stretch; }
+}
+/* ==========================================
+   GAS SENSOR WIDGET
+   ========================================== */
+.widget-gas .gas-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-grow: 1;
+}
+
+.gas-readout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.gas-type {
+    font-size: 24px; /* Slightly larger for quick readability */
+    letter-spacing: 1.5px;
+}
+
+.gas-level-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.icon-gas {
+    width: 28px;
+    height: 28px;
+    color: var(--cyan-oxy);
+    opacity: 0.8;
+}
+
+/* Gas Warning States */
+.badge-warning {
+    background: rgba(255, 204, 0, 0.15);
+    color: #ffcc00;
+    border: 1px solid #ffcc00;
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.2);
+}
+
+.bg-warning { background: #ffcc00; }
+.bg-danger { background: var(--alert-red); }
+/* ==========================================
+   WIDGET 5: TACTICAL OPTICS (ONE UI STACK)
+   ========================================== */
+.widget-media {
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.media-stack-container {
+    position: relative;
+    width: 100%;
+    height: 180px; /* Slightly taller to accommodate the fanned cards */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.media-card {
+    position: absolute;
+    width: 220px;
+    height: 140px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    /* iOS fluid transition for hovering */
+    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.media-card img { width: 100%; height: 100%; object-fit: cover; }
+.media-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); }
+
+/* The One UI Layout Math - PERMANENTLY SPREAD */
+.stack-1 { z-index: 3; transform: scale(1); }
+.stack-2 { z-index: 2; transform: rotate(-12deg) translate(-35px, 10px) scale(0.9); opacity: 0.7; }
+.stack-3 { z-index: 1; transform: rotate(14deg) translate(35px, 15px) scale(0.85); opacity: 0.5; }
+
+/* Enhanced Hover Expansion */
+.widget-media:hover .stack-1 { transform: translateY(-8px) scale(1.02); box-shadow: 0 20px 40px rgba(0,0,0,0.9), 0 0 25px rgba(118, 185, 0, 0.2); }
+.widget-media:hover .stack-2 { transform: rotate(-18deg) translate(-55px, 0px) scale(0.92); opacity: 0.9; }
+.widget-media:hover .stack-3 { transform: rotate(20deg) translate(55px, 5px) scale(0.88); opacity: 0.8; }
+
+.click-prompt {
+    position: absolute;
+    bottom: 12px; left: 0; width: 100%;
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+}
+
+/* ==========================================
+   DYNAMIC iOS EXPANSION MODAL
+   ========================================== */
+.optics-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    z-index: 9999;
+    display: flex; justify-content: center; align-items: center;
+    
+    /* Hidden State */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.optics-modal-content {
+    width: 90%;
+    max-width: 1200px;
+    height: 85vh;
+    background: var(--camo-dark);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 40px 80px rgba(0,0,0,0.9);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+
+    /* Hidden State: 30% Scale (Size of an app icon) */
+    transform: scale(0.3);
+    opacity: 0;
+    
+    /* Apple iOS CoreAnimation Physics */
+    /* Transform Origin is still dynamically injected by JS */
+    transition: transform 0.75s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease-out;
+}
+
+/* Active State Triggered by JS */
+.optics-modal-overlay.active { opacity: 1; pointer-events: all; }
+.optics-modal-overlay.active .optics-modal-content { 
+    transform: scale(1); 
+    opacity: 1;
+}
+
+/* Modal Internals */
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 32px; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.05); }
+.btn-close-modal { background: rgba(255,255,255,0.05); border: none; color: #fff; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; }
+.btn-close-modal:hover { background: var(--alert-red); transform: rotate(90deg); }
+
+.modal-body { padding: 32px; overflow-y: auto; flex-grow: 1; }
+.media-category h3 { margin-bottom: 16px; border-bottom: 1px solid rgba(118, 185, 0, 0.2); padding-bottom: 8px; display: inline-block; }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.grid-img { width: 100%; height: 200px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: transform 0.3s var(--smooth); }
+.grid-img:hover { transform: scale(1.03); border-color: var(--camo-neon); box-shadow: 0 10px 20px rgba(118,185,0,0.2); }
+.grid-img img { width: 100%; height: 100%; object-fit: cover; }
+/* ==========================================
+   macOS SONOMA FLOATING WINDOW (UAV HUD)
+   ========================================== */
+.sonoma-window {
+    position: absolute;
+    top: 80px;
+    right: 40px;
+    width: 380px;
+    background: rgba(20, 20, 22, 0.65);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: height 0.4s var(--spring), opacity 0.3s ease;
+}
+
+/* Header & Drag Handle */
+.sonoma-header {
+    height: 40px;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    cursor: grab;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sonoma-header:active {
+    cursor: grabbing;
+}
+
+/* Traffic Light Controls */
+.mac-controls {
+    display: flex;
+    gap: 8px;
+    width: 60px;
+}
+.mac-btn {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+.mac-btn:hover { filter: brightness(0.7); }
+.close-btn { background: #ff5f56; }
+.min-btn { background: #ffbd2e; }
+.max-btn { background: #27c93f; }
+
+.window-title {
+    flex-grow: 1;
+    text-align: center;
+    padding-right: 40px; /* Offset to center text visually */
+    color: var(--text-dim);
+    font-weight: 700;
+}
+
+/* Body & Video Feed */
+.sonoma-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: opacity 0.3s ease;
+}
+
+.video-feed-container {
+    width: 100%;
+    height: 220px;
+    background: #000;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.video-feed-container img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+
+.feed-overlay {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 800;
+    color: var(--alert-red);
+    display: flex; align-items: center; gap: 6px;
+    border: 1px solid rgba(255, 51, 51, 0.3);
+}
+
+/* Minimize State Classes */
+.sonoma-window.minimized {
+    height: 40px !important; /* Forces window to collapse to header only */
+}
+.sonoma-window.minimized .sonoma-body {
+    opacity: 0;
+    pointer-events: none;
+}
+.sonoma-window.closed {
+    opacity: 0;
+    pointer-events: none;
+}
+/* ==========================================
+   AI CONTEXTUAL VERIFICATION MODAL STYLES
+   ========================================== */
+.ai-alert-overlay {
+    z-index: 10000;
+    background: rgba(10, 3, 3, 0.88);
+}
+
+.ai-alert-box {
+    border-color: rgba(255, 51, 51, 0.4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 40px 100px rgba(255, 51, 51, 0.25);
+    background: var(--camo-dark);
+}
+
+.alert-header {
+    background: rgba(255, 51, 51, 0.12);
+    border-bottom: 1px solid rgba(255, 51, 51, 0.3);
+}
+
+.alert-pulse {
+    background: var(--alert-red) !important;
+    box-shadow: 0 0 15px var(--alert-red) !important;
+}
+
+.alert-title {
+    color: var(--alert-red) !important;
+    letter-spacing: 2px;
+    font-weight: 800;
+}
+
+.ai-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    height: 100%;
+}
+
+.ai-evidence-col, .ai-report-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ai-img-wrapper {
+    height: 240px !important;
+    border-color: rgba(255, 51, 51, 0.3) !important;
+}
+
+.ai-report-card {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.ai-reasoning-box {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #ffffff;
+    line-height: 1.6;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+}
+
+.mt-2 { margin-top: 10px; }
+.mb-20 { margin-bottom: 16px; }
+.width-full { width: 100%; }
+
+.blink {
+    animation: textBlink 1s infinite alternate;
+}
+
+@keyframes textBlink {
+    0% { opacity: 0.3; }
+    100% { opacity: 1; text-shadow: 0 0 15px currentColor; }
+}
+
+@media (max-width: 900px) {
+    .ai-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* ==========================================
+   SATELLITE TOPOLOGY WIDGET & MODAL
+   ========================================== */
+.map-container-wrapper {
+    position: relative;
+    width: 100%; 
+    height: 220px; 
+    border-radius: var(--radius-sm); 
+    border: 1px solid rgba(118, 185, 0, 0.2); 
+    overflow: hidden;
+}
+
+.tactical-map-layer {
+    width: 100%;
+    height: 100%;
+    background: #060906;
+}
+
+/* 
+  Military Satellite Filter: 
+  Desaturates the image, adds a green night-vision tint, and sharpens contrast.
+*/
+.leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+    filter: grayscale(80%) sepia(50%) hue-rotate(60deg) brightness(60%) contrast(150%);
+}
+
+.map-modal-content {
+    max-width: 1400px;
+    height: 85vh;
+}
+
+.expanded-map-layout {
+    display: flex;
+    gap: 24px;
+    padding: 24px;
+    height: calc(100% - 80px);
+}
+
+.expanded-map-container {
+    flex-grow: 1;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--camo-neon);
+    box-shadow: 0 0 30px rgba(118, 185, 0, 0.1);
+}
+
+.map-data-panel {
+    width: 320px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+.hud-crosshair-decorative {
+    width: 100%;
+    aspect-ratio: 1/1;
+    opacity: 0.5;
+    margin-top: 20px;
+}
