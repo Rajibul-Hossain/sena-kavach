@@ -6,7 +6,7 @@
 //  Network Config 
 #define WIFI_SSID "rajibul"
 #define WIFI_PASSWORD "spdf0123"
-#define API_KEY "AIzaSyD8VmRxwh6fiQ8msCKhwsAhfScRHaFeW04"
+#define API_KEY "sorry sirrrrrrrrrrrr add ur own api key"
 #define DATABASE_URL "sena-kavach-default-rtdb.firebaseio.com"
 #define USER_EMAIL "node@sena.mil"
 #define USER_PASSWORD "123456"
