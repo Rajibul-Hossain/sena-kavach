@@ -1,0 +1,9 @@
+# C++ source
+*.cpp linguist-language=C++
+*.cc linguist-language=C++
+*.cxx linguist-language=C++
+*.hpp linguist-language=C++
+
+# Exclude generated frontend files
+dist/* linguist-generated=true
+build/* linguist-generated=true
