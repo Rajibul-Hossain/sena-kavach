@@ -621,3 +621,52 @@ body {
     .top-nav { flex-direction: column; gap: 16px; }
     .nav-controls { width: 100%; flex-direction: column; align-items: stretch; }
 }
+/* ==========================================
+   TACTICAL ALERT ENGINE & POPUPS
+   ========================================== */
+.tactical-toast {
+    width: 380px;
+    background: rgba(15, 0, 0, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--alert-red);
+    border-left: 6px solid var(--alert-red);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.8), 0 0 25px rgba(255, 51, 51, 0.4);
+    color: #fff;
+    pointer-events: auto;
+    cursor: pointer;
+    transform: translateX(120%);
+    animation: slideInRight 0.4s var(--spring) forwards;
+}
+
+.tactical-toast:hover {
+    background: rgba(30, 0, 0, 0.95);
+    border-color: #ff5555;
+}
+
+.toast-header {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 900;
+    color: var(--alert-red); margin-bottom: 8px; letter-spacing: 1px;
+}
+
+.toast-body {
+    font-family: var(--font-ui); font-size: 13px; color: #ddd; line-height: 1.4;
+}
+
+/* Aggressive Global Screen Bleed */
+.global-crisis-mode {
+    animation: screenRedBleed 1s infinite alternate;
+}
+
+@keyframes slideInRight {
+    to { transform: translateX(0); }
+}
+@keyframes slideOutRight {
+    to { transform: translateX(120%); opacity: 0; }
+}
+@keyframes screenRedBleed {
+    0% { box-shadow: inset 0 0 0px transparent; }
+    100% { box-shadow: inset 0 0 150px rgba(255, 0, 0, 0.25); }
+}
