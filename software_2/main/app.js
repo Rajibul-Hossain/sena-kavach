@@ -303,13 +303,20 @@ function startTelemetryStream(soldierId) {
                 ui.radarTarget.style.top = `${Math.floor(Math.random() * 40) + 30}%`;
                 ui.radarTarget.style.left = `${Math.floor(Math.random() * 40) + 30}%`;
             }
-
-            // --- Biometrics ---
+// --- Biometrics ---
             const bpmVal = data.heart_rate || (data.biometrics ? data.biometrics.bpm : 87);
-            if (ui.bpm) ui.bpm.innerText = bpmVal;
+            if (ui.bpm) {
+                ui.bpm.innerText = bpmVal;
+                // Flash the heart rate if it drops below 50 or spikes above 130
+                if (bpmVal < 50 || bpmVal > 130) {
+                    ui.bpm.classList.add('value-critical-flash');
+                } else {
+                    ui.bpm.classList.remove('value-critical-flash');
+                }
+            }
             if (ui.barBpm) {
                 ui.barBpm.style.width = `${Math.min((bpmVal / 180) * 100, 100)}%`;
-                ui.barBpm.style.background = bpmVal > 120 ? "var(--alert-red)" : "var(--camo-neon)";
+                ui.barBpm.style.background = (bpmVal > 130 || bpmVal < 50) ? "var(--alert-red)" : "var(--camo-neon)";
             }
 
             // --- Environment ---
@@ -320,7 +327,17 @@ function startTelemetryStream(soldierId) {
 
                 if (ui.tempVal) ui.tempVal.innerText = `${parseFloat(tempC).toFixed(1)}°C`;
                 if (ui.humVal) ui.humVal.innerText = `${parseFloat(humRh).toFixed(1)}%`;
-                if (ui.gasVal) ui.gasVal.innerText = gasPpm;
+                
+                if (ui.gasVal) {
+                    ui.gasVal.innerText = gasPpm;
+                    // Flash the exact PPM number if it crosses 300
+                    if (gasPpm > 300) {
+                        ui.gasVal.classList.add('value-critical-flash');
+                    } else {
+                        ui.gasVal.classList.remove('value-critical-flash');
+                    }
+                }
+                
                 if (ui.barGas) ui.barGas.style.width = `${Math.min((gasPpm / 1000) * 100, 100)}%`;
 
                 if (ui.gasStatus) {
@@ -344,11 +361,22 @@ function startTelemetryStream(soldierId) {
 
                 if (ui.pitch) {
                     ui.pitch.innerText = pitch.toFixed(1);
-                    ui.pitch.className = Math.abs(pitch) > 60 ? 'text-red blink' : 'text-neon';
+                    // Flash specific axis if it breaches 60 degrees
+                    if (Math.abs(pitch) > 60) {
+                        ui.pitch.classList.add('value-critical-flash');
+                    } else {
+                        ui.pitch.classList.remove('value-critical-flash');
+                        ui.pitch.className = 'text-neon';
+                    }
                 }
                 if (ui.roll) {
                     ui.roll.innerText = roll.toFixed(1);
-                    ui.roll.className = Math.abs(roll) > 60 ? 'text-red blink' : 'text-neon';
+                    if (Math.abs(roll) > 60) {
+                        ui.roll.classList.add('value-critical-flash');
+                    } else {
+                        ui.roll.classList.remove('value-critical-flash');
+                        ui.roll.className = 'text-neon';
+                    }
                 }
 
                 if ((Math.abs(pitch) > 60 || Math.abs(roll) > 60) && !isAiAnalyzing) {
