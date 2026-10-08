@@ -571,3 +571,68 @@ window.addEventListener('pagehide', () => {
 
 // Boot Sequence
 populateUnitSelector();
+// ==========================================
+// THRESHOLD WATCHDOG & POPUP ENGINE
+// ==========================================
+function evaluateTacticalThresholds(soldierId, data) {
+    if (!data) return;
+
+    // 1. Gas Threshold (> 300 PPM)
+    if (data.environment && data.environment.gas_level > 300) {
+        triggerSystemAlert(soldierId, "GAS_CRITICAL", `TOXIC ATMOSPHERE DETECTED. Gas levels at ${data.environment.gas_level} PPM. Immediate extraction advised.`);
+    }
+
+    // 2. Kinematic Threshold (Pitch/Roll > 60 degrees)
+    if (data.telemetry && (Math.abs(data.telemetry.pitch) > 60 || Math.abs(data.telemetry.roll) > 60)) {
+        triggerSystemAlert(soldierId, "ATTITUDE_CRITICAL", `SEVERE KINEMATIC TRAUMA. Pitch: ${parseFloat(data.telemetry.pitch).toFixed(1)}° | Roll: ${parseFloat(data.telemetry.roll).toFixed(1)}°. Possible casualty or drone crash.`);
+    }
+
+    // 3. Biometric Threshold (Heart Rate > 130 or < 50)
+    let bpm = data.heart_rate || (data.biometrics ? data.biometrics.bpm : null);
+    if (bpm) {
+        if (bpm > 130) triggerSystemAlert(soldierId, "BPM_TACHYCARDIA", `ACUTE CARDIAC STRESS. Heart rate sustained at ${bpm} BPM.`);
+        if (bpm < 50 && bpm > 0) triggerSystemAlert(soldierId, "BPM_BRADYCARDIA", `CRITICAL VITALS. Heart rate dropped to ${bpm} BPM. Possible shock.`);
+    }
+}
+
+function triggerSystemAlert(soldierId, alertCode, message) {
+    const alertId = `${soldierId}_${alertCode}`;
+    
+    // Prevent duplicate popups if this specific alert is already on screen
+    if (activeAlerts.has(alertId)) return;
+    activeAlerts.add(alertId);
+
+    // Trigger aggressive red screen flash
+    document.body.classList.add('global-crisis-mode');
+
+    // Build the Toast HTML
+    const center = document.getElementById("alert-center");
+    const toast = document.createElement("div");
+    toast.className = "tactical-toast";
+    toast.innerHTML = `
+        <div class="toast-header">
+            <span style="animation: pulse 1s infinite;">⚠️</span> 
+            [ CMD-${soldierId} ] ${alertCode.replace('_', ' ')}
+        </div>
+        <div class="toast-body">${message}</div>
+        <div style="margin-top: 10px; font-size: 10px; color: #888; font-family: monospace;">CLICK TO ACKNOWLEDGE & DISMISS</div>
+    `;
+
+    // Click to dismiss
+    toast.addEventListener("click", () => {
+        toast.style.animation = "slideOutRight 0.4s cubic-bezier(0.8, 0.2, 0.2, 1) forwards";
+        setTimeout(() => {
+            toast.remove();
+            activeAlerts.delete(alertId);
+            // If no alerts left, turn off the red screen bleed
+            if (activeAlerts.size === 0) document.body.classList.remove('global-crisis-mode');
+        }, 400); // Wait for animation to finish
+    });
+
+    // Auto-dismiss after 15 seconds if ignored
+    setTimeout(() => {
+        if (activeAlerts.has(alertId)) toast.click();
+    }, 15000);
+
+    center.appendChild(toast);
+}
