@@ -669,3 +669,67 @@ function triggerSystemAlert(soldierId, alertCode, message) {
 
     center.appendChild(toast);
 }
+// ==========================================
+// BLDC PROPULSION LINK (ESP32 UPLINK)
+// ==========================================
+const btnArm = document.getElementById("btn-arm-motors");
+const throttleSlider = document.getElementById("throttle-slider");
+const throttleReadout = document.getElementById("throttle-readout");
+
+let isArmed = false;
+
+// 1. Arming sequence safety toggle
+if (btnArm) {
+    btnArm.addEventListener("click", () => {
+        isArmed = !isArmed;
+        if (isArmed) {
+            btnArm.className = "badge badge-online blink";
+            btnArm.innerText = "MOTORS ARMED";
+            throttleSlider.disabled = false;
+            throttleSlider.classList.add("armed");
+        } else {
+            // Instant Kill Switch
+            btnArm.className = "badge badge-offline";
+            btnArm.innerText = "SYSTEM DISARMED";
+            throttleSlider.disabled = true;
+            throttleSlider.classList.remove("armed");
+            throttleSlider.value = 1000;
+            updateThrottleUI(1000);
+            sendThrottleToFirebase(1000);
+        }
+    });
+}
+
+// 2. Throttle Slider Listener (Throttled to 10Hz to prevent Firebase DDoS)
+let throttleTimeout = null;
+if (throttleSlider) {
+    throttleSlider.addEventListener("input", (e) => {
+        const val = parseInt(e.target.value);
+        updateThrottleUI(val);
+        
+        // Only send to Firebase every 100ms
+        if (!throttleTimeout) {
+            throttleTimeout = setTimeout(() => {
+                sendThrottleToFirebase(val);
+                throttleTimeout = null;
+            }, 100);
+        }
+    });
+}
+
+function updateThrottleUI(usValue) {
+    // Convert 1000-2000 microseconds to a 0-100% display
+    const percent = Math.floor(((usValue - 1000) / 1000) * 100);
+    if (throttleReadout) {
+        throttleReadout.innerText = `${percent}%`;
+        throttleReadout.className = percent > 50 ? "mono-data text-red" : "mono-data text-neon";
+    }
+}
+
+import { set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+function sendThrottleToFirebase(usValue) {
+    // Pushes the exact microsecond value to RTDB
+    set(ref(db, 'uav_commands/throttle_us'), usValue)
+        .catch(err => console.error("Propulsion Uplink Failed:", err));
+}

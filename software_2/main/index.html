@@ -218,10 +218,19 @@
                 <div class="feed-overlay"><span class="pulse-ring"></span> LIVE FEED</div>
             </div>
             <div class="uav-controls">
-                <button id="btn-deploy-servo" class="btn-execute" style="width: 100%; height: 50px; margin-top: 0;">
-                    <span class="btn-text">ACTUATE SERVO [90°]</span>
-                    <span class="btn-deco">[ CMD ]</span>
-                </button>
+                <!-- Propulsion System -->
+                <div style="background: rgba(0,0,0,0.4); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span class="mono-tag" style="color: var(--camo-neon);">TRI-BLDC PROPULSION</span>
+                        <button id="btn-arm-motors" class="badge badge-offline" style="cursor: pointer; border: none; padding: 4px 12px;">SYSTEM DISARMED</button>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="mono-label" style="margin: 0;">PWR</span>
+                        <input type="range" id="throttle-slider" min="1000" max="2000" value="1000" class="tactical-slider" disabled>
+                        <span id="throttle-readout" class="mono-data text-dim" style="font-size: 14px; width: 45px; text-align: right;">0%</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
