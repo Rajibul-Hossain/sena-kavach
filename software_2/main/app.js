@@ -357,7 +357,6 @@ function startTelemetryStream(soldierId) {
         }
     });
 }
-
 // ==========================================
 // 6. STORAGE: RETRIEVE OPTICAL ARCHIVE
 // ==========================================
@@ -366,10 +365,27 @@ async function fetchUnitOptics(unitId) {
     ui.opticsBadge.className = "badge badge-neutral";
     ui.opticsBadge.innerText = "SCANNING ARCHIVE...";
 
-    const folderReference = storageRef(storage, `combat_logs/CMD-${unitId}`);
+    // FATAL FLAW FIX: Strip any existing "CMD-" or "cmd-" from the ID
+    // If unitId is "CMD-101", this reduces it to "101" so we don't query "CMD-CMD-101"
+    const cleanId = String(unitId).replace(/^CMD-/i, "");
+    
+    console.log(`[STORAGE_DEBUG] Attempting to fetch from: combat_logs/CMD-${cleanId}`);
+
     try {
-        const res = await listAll(folderReference);
+        // First attempt: Uppercase (CMD-101)
+        let folderReference = storageRef(storage, `combat_logs/CMD-${cleanId}`);
+        let res = await listAll(folderReference);
+
+        // Second attempt: Fallback to Lowercase if empty (cmd-101)
         if (res.items.length === 0) {
+            console.log(`[STORAGE_DEBUG] Uppercase folder empty. Trying: combat_logs/cmd-${cleanId}`);
+            folderReference = storageRef(storage, `combat_logs/cmd-${cleanId}`);
+            res = await listAll(folderReference);
+        }
+
+        // Final check: If still empty, abort gracefully
+        if (res.items.length === 0) {
+            console.log(`[STORAGE_DEBUG] Both folders are completely empty.`);
             ui.opticsBadge.className = "badge badge-offline";
             ui.opticsBadge.innerText = "NO VISUALS";
             latestImageUrl = null;
@@ -378,17 +394,17 @@ async function fetchUnitOptics(unitId) {
 
         ui.opticsBadge.className = "badge badge-online";
         ui.opticsBadge.innerText = `${res.items.length} FILES SECURED`;
+        console.log(`[STORAGE_DEBUG] Found ${res.items.length} visuals. Rendering...`);
 
+        // Fetch URLs and inject into UI
         const urlPromises = res.items.map(itemRef => getDownloadURL(itemRef));
         const imageUrls = await Promise.all(urlPromises);
-        latestImageUrl = imageUrls[imageUrls.length - 1];
+        latestImageUrl = imageUrls[imageUrls.length - 1]; // Grab the newest capture
 
-        // Hydrate stacked cards
         if (ui.stackImg1 && imageUrls[0]) ui.stackImg1.src = latestImageUrl;
         if (ui.stackImg2) ui.stackImg2.src = imageUrls[imageUrls.length - 2] || latestImageUrl;
         if (ui.stackImg3) ui.stackImg3.src = imageUrls[imageUrls.length - 3] || latestImageUrl;
 
-        // Populate Expanded Grid Modal
         if (ui.modalImageGrid) {
             ui.modalImageGrid.innerHTML = '';
             imageUrls.slice().reverse().forEach(url => {
@@ -399,12 +415,11 @@ async function fetchUnitOptics(unitId) {
             });
         }
     } catch (error) {
-        console.warn("[STORAGE] Cloud bucket list restricted:", error);
+        console.error("[STORAGE_FATAL] Connection blocked by Browser or Rules:", error);
         ui.opticsBadge.className = "badge badge-offline";
-        ui.opticsBadge.innerText = "SECURED [LOCAL]";
+        ui.opticsBadge.innerText = "UPLINK FAILED";
     }
 }
-
 // ==========================================
 // 7. AI VERIFICATION PIPELINE
 // ==========================================
