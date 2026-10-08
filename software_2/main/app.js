@@ -231,6 +231,7 @@ function startTelemetryStream(soldierId) {
     currentListener = onValue(soldierRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
+            evaluateTacticalThresholds(soldierId, data);
             // --- Identity ---
             const unitStr = data.army_no || `CMD-${soldierId}`;
             if (ui.armyNo) ui.armyNo.innerText = unitStr;
@@ -570,10 +571,12 @@ window.addEventListener('pagehide', () => {
 });
 
 // Boot Sequence
-populateUnitSelector();
-// ==========================================
+populateUnitSelector();// ==========================================
 // THRESHOLD WATCHDOG & POPUP ENGINE
 // ==========================================
+// Define the tracker directly above the functions to guarantee scope access
+const activeAlerts = new Set();
+
 function evaluateTacticalThresholds(soldierId, data) {
     if (!data) return;
 
@@ -607,6 +610,8 @@ function triggerSystemAlert(soldierId, alertCode, message) {
 
     // Build the Toast HTML
     const center = document.getElementById("alert-center");
+    if (!center) return; // Fail-safe in case the HTML is missing
+
     const toast = document.createElement("div");
     toast.className = "tactical-toast";
     toast.innerHTML = `
