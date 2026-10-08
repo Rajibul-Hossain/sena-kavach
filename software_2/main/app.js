@@ -317,7 +317,7 @@ async function fetchUnitOptics(unitId) {
     try {
         const res = await listAll(folderReference);
         if (res.items.length === 0) {
-            ui.opticsBadge.className = "badge badge-offline"; ui.opticsBadge.innerText = "NO VISUAL INTEL";
+            ui.opticsBadge.className = "badge badge-offline"; ui.opticsBadge.innerText = "NO VISUALS";
             latestImageUrl = null; return;
         }
 
@@ -342,10 +342,6 @@ async function fetchUnitOptics(unitId) {
         ui.opticsBadge.className = "badge badge-offline"; ui.opticsBadge.innerText = "UPLINK FAILED";
     }
 }
-
-// ==========================================
-// 8. TENSORFLOW AI TRIGGER
-// ==========================================
 async function triggerAiVerification(soldierId, pitch, roll, gas) {
     if (!latestImageUrl) return;
 
