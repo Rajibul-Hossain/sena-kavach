@@ -602,3 +602,26 @@ body {
     .elite-title { font-size: 28px; }
     .elite-logo-wrapper { width: 45px; height: 45px; }
 }
+
+
+/* layout for the sidebar*/
+
+{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.layout-container {
+    display: flex;
+    min-height: auto;
+
+
+}
+
+.sidebar {
+    width: 250px;
+    padding: auto;
+    color: #1a2415;
+    background-color: #121a12;
+}
