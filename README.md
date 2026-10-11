@@ -1,59 +1,40 @@
-# HIMRAKSHAK
+# SENA KAVACH
+### A Soldier Safety and Monitoring System
 
-**Modular High-Altitude Soldier Monitoring and Communication System**
+SENA KAVACH is a project focused on improving soldier safety in high-altitude areas, where extreme weather, difficult terrain and unreliable communication can make field operations challenging.
 
-## Overview
-Himrakshak is an offline, infrastructure-independent soldier monitoring, tracking, and communication platform designed for extreme high-altitude environments (e.g., Siachen Glacier, LAC). It solves the critical problem of soldier location loss during avalanches, whiteouts, and communication-denied operations. 
+The idea is to bring soldier monitoring, location tracking and wireless communication together in one system. By combining sensors, LoRa communication, a monitoring dashboard and drone-assisted surveillance, SENA KAVACH aims to make important field information easier to access, even in areas with limited connectivity.
 
-Operating entirely independently of cellular, satellite, and internet infrastructure, Himrakshak utilizes a self-healing LoRa mesh network, edge-computed biometric authentication, and an autonomous drone relay fallback to ensure continuous data transmission of GPS coordinates, vital signs, and encrypted communications.
+## What does it do?
 
----
+- **Tracks location:** Uses GPS to help monitor the position of field units.
+- **Monitors vital signs:** Uses sensors to measure parameters such as heart rate and blood oxygen levels.
+- **Monitors the environment:** Collects readings such as altitude and gas levels to help identify potentially unsafe conditions.
+- **Works without constant internet access:** Uses LoRa-based communication to exchange information over a local wireless link.
+- **Provides a live dashboard:** Brings sensor readings, alerts and other system information together in one interface.
+- **Supports drone-assisted observation:** Uses a drone to provide an aerial view of the surrounding area and explore ways to extend communication coverage.
+- **Explores avalanche prediction:** Includes a software component for analysing data and developing avalanche-related prediction models.
 
-## Key Features
-*   **Infrastructure-Independent Mesh Network:** Built on LoRa (SX1262), enabling node-to-node relay without central towers.
-*   **Real-Time Tracking & Vitals:** Continuous monitoring of GPS (historical and live), SpO2, heart rate, barometric altitude (avalanche detection), and ambient gas levels (CO/O2).
-*   **Autonomous Drone Relay:** Automated Pixhawk-based MAVLink drone deployment triggered by mesh signal degradation to act as an airborne relay station.
-*   **Military-Grade Security:** AES-256 encrypted hex payloads with local key storage and NFC-based glove-integrated biometric locks.
-*   **Extreme Climate Engineering:** Powered by Li-SOCl2 batteries and solar harvesting to operate continuously in temperatures dropping below −50°C.
-*   **Air-Gapped Command Dashboard:** Local Raspberry Pi-based server rendering an offline, translucent, high-visibility UI for commanding officers.
+## How it works
 
----
+The system is built around three main components.
 
-## System Architecture
+The soldier unit collects information from its sensors and transmits relevant data wirelessly. A local monitoring station receives the information and displays it on a dashboard, allowing an operator to view available readings and system status. A drone can provide an additional view of the surrounding terrain and, with further integration, act as a communication relay where radio coverage is limited.
 
-### 1. The Soldier Unit (Edge Node)
-A modular, compact wearable device carried by deployed personnel.
-*   **Microcontroller:** ESP32
-*   **Transceiver:** SX1262 LoRa Module
-*   **Sensors:** NEO-M8N (GPS), MAX30102 (Pulse/SpO2), BMP388 (Barometric Altimeter), MQ-7/MQ-8 (Gas)
-*   **Power:** Li-SOCl2 primary backup + Integrated Solar Panel
+The goal is to make these components work together while reducing dependence on external network infrastructure.
 
-### 2. The Base Unit (Command Server)
-An offline, localized server operated by the duty official at the forward post.
-*   **Hardware:** Raspberry Pi 4 Model B + LoRa Receiver Node
-*   **Backend:** Node.js, SQLite (for historical trajectory logging)
-*   **Frontend:** Vanilla JavaScript, HTML, CSS (Custom fluid, glassmorphism UI for high-contrast visibility)
-*   **Mapping:** Pre-cached offline local map tiles
+## Technology
 
-### 3. Autonomous Drone Relay (Airborne Node)
-A custom-built, high-altitude UAV that bridges signal gaps.
-*   **Flight Controller:** Pixhawk (ArduPilot)
-*   **Companion Computer:** Raspberry Pi Zero W + LoRa Module
-*   **Autonomy:** Python script utilizing DroneKit/MAVLink for RSSI-triggered auto-launch and loiter.
+SENA KAVACH brings together embedded systems, wireless communication, software and hardware design. Its technology includes ESP32-based controllers, LoRa modules, environmental and physiological sensors, GPS, Raspberry Pi hardware, a web-based dashboard and Python-based data analysis. The project also explores drone integration and custom-designed hardware enclosures.
 
----
+## Current Development
 
-## Repository Structure
+SENA KAVACH is an ongoing project. Work focuses on developing its individual components, improving the monitoring interface, integrating hardware and software, and testing how the different modules can operate together.
 
-```text
-himrakshak/
-├── firmware/
-│   ├── soldier_node/       # ESP32 C++ firmware (Sensors, AES encryption, LoRa Mesh)
-│   └── base_receiver/      # ESP32 C++ firmware (Serial bridge to Raspberry Pi)
-├── server/
-│   ├── backend/            # Node.js server, Decryption logic, SQLite DB setup
-│   └── frontend/           # HTML/CSS/JS dashboard, offline map assets
-├── drone_autonomy/
-│   └── relay_logic.py      # MAVLink/DroneKit Python scripts for RSSI monitoring
-├── hardware_schematics/    # PCB designs and 3D printable enclosures (STL)
-└── docs/                   # Detailed protocol specifications and deployment manuals
+The system's reliability, sensor accuracy, communication range and performance in extreme weather need to be validated through further testing before it can be considered suitable for real-world deployment.
+
+## The Goal
+
+The goal of SENA KAVACH is simple: use technology to help improve soldier monitoring, maintain communication in difficult environments and provide better access to information when it matters most.
+
+*Designed with soldier safety in mind.*
