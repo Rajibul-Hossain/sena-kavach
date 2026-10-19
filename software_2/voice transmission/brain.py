@@ -3,20 +3,21 @@ import sys
 import json
 import asyncio
 import fractions
-import pyaudiowpatch as pyaudio  # <-- The Option 1 Patch
+import pyaudiowpatch as pyaudio
 import av
+import requests
 from vosk import Model, KaldiRecognizer
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-import firebase_admin
-from firebase_admin import credentials, db
 
 # ---------------------------------------------------------
-# 1. FIREBASE SETUP
+# 1. CONFIGURATION
 # ---------------------------------------------------------
-cred = credentials.Certificate("firebase_key.json")
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://sena-kavach-default-rtdb.firebaseio.com//'  # <-- CHANGE THIS
-})
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "model")
+
+# Bypassing the Admin SDK. We use the public REST endpoint 
+# since your database rules for /webrtc are already open.
+DB_URL = "https://sena-kavach-default-rtdb.firebaseio.com/webrtc"
 
 # ---------------------------------------------------------
 # 2. CUSTOM WEBRTC AUDIO TRACK
@@ -30,17 +31,13 @@ class MicrophoneTrack(MediaStreamTrack):
         self.pts = 0
 
     async def recv(self):
-        # aiortc expects 20ms chunks (320 frames at 16000Hz)
         loop = asyncio.get_event_loop()
-        # Read from PyAudio in a background thread to prevent blocking the async loop
         data = await loop.run_in_executor(None, self.stream.read, 320, False)
         
-        # Package the raw bytes into an FFmpeg audio frame for WebRTC
         frame = av.AudioFrame(format='s16', layout='mono', samples=320)
         frame.sample_rate = 16000
         frame.planes[0].update(data)
         
-        # Manage audio timing
         frame.pts = self.pts
         frame.time_base = fractions.Fraction(1, 16000)
         self.pts += 320
@@ -48,12 +45,11 @@ class MicrophoneTrack(MediaStreamTrack):
         return frame
 
 # ---------------------------------------------------------
-# 3. WEBRTC SIGNALING LOGIC
+# 3. WEBRTC SIGNALING LOGIC (REST API BYPASS)
 # ---------------------------------------------------------
 async def start_webrtc_transmission(pa):
     print("\n[!] Initializing secure WebRTC channel...")
     
-    # Re-open the microphone specifically formatted for WebRTC (320 frame buffer)
     webrtc_stream = pa.open(format=pyaudio.paInt16,
                             channels=1,
                             rate=16000,
@@ -64,33 +60,37 @@ async def start_webrtc_transmission(pa):
     mic_track = MicrophoneTrack(webrtc_stream)
     pc.addTrack(mic_track)
 
-    # Generate the SDP Offer
     offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
 
-    # Push the offer to Firebase so the Web Dashboard can read it
-    ref = db.reference('webrtc')
-    ref.child('offer').set({
-        'type': pc.localDescription.type,
-        'sdp': pc.localDescription.sdp
-    })
-    
-    # Clear any old answers to ensure a clean handshake
-    ref.child('answer').delete()
+    # Use standard HTTP requests to bypass Google Cloud IAM entirely
+    try:
+        requests.delete(f"{DB_URL}/answer.json")
+        
+        offer_data = {
+            'type': pc.localDescription.type,
+            'sdp': pc.localDescription.sdp
+        }
+        requests.put(f"{DB_URL}/offer.json", json=offer_data)
+    except Exception as e:
+        print(f"[!] Network Error writing to Firebase: {e}")
+        sys.exit(1)
 
-    print("[*] Offer sent to Firebase. Waiting for Dashboard to connect...")
+    print("[*] Offer sent to Firebase via REST. Waiting for Dashboard to connect...")
 
-    # Poll Firebase for the Dashboard's Answer
     while True:
-        answer_data = ref.child('answer').get()
-        if answer_data:
-            answer = RTCSessionDescription(sdp=answer_data['sdp'], type=answer_data['type'])
-            await pc.setRemoteDescription(answer)
-            print("\n[SUCCESS] WebRTC Connected! Streaming live audio to dashboard...\n")
-            break
-        await asyncio.sleep(1)
+        try:
+            resp = requests.get(f"{DB_URL}/answer.json")
+            if resp.status_code == 200 and resp.json():
+                answer_data = resp.json()
+                answer = RTCSessionDescription(sdp=answer_data['sdp'], type=answer_data['type'])
+                await pc.setRemoteDescription(answer)
+                print("\n[SUCCESS] WebRTC Connected! Streaming live audio to dashboard...\n")
+                break
+        except Exception:
+            pass
+        await asyncio.sleep(0.5)
 
-    # Keep the connection alive indefinitely
     while True:
         await asyncio.sleep(3600)
 
@@ -98,15 +98,15 @@ async def start_webrtc_transmission(pa):
 # 4. VOSK WAKE-WORD ENGINE
 # ---------------------------------------------------------
 def main():
-    if not os.path.exists("model"):
-        print("Error: 'model' folder not found. Download and extract the Vosk model here.")
+    if not os.path.exists(MODEL_PATH):
+        print(f"\n[FATAL ERROR] Model folder not found at:\n{MODEL_PATH}")
         sys.exit(1)
 
-    model = Model("model")
+    print(f"[*] Loading Vosk model from: {MODEL_PATH}")
+    model = Model(MODEL_PATH)
     recognizer = KaldiRecognizer(model, 16000)
     pa = pyaudio.PyAudio()
 
-    # Open microphone for Vosk (4000 frame buffer)
     vosk_stream = pa.open(format=pyaudio.paInt16,
                           channels=1,
                           rate=16000,
@@ -129,6 +129,7 @@ def main():
                     
                     vosk_stream.stop_stream()
                     vosk_stream.close()
+                    
                     asyncio.run(start_webrtc_transmission(pa))
                     break
             else:
