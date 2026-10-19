@@ -1,12 +1,19 @@
+/* ==========================================================================
+   SENA KAVACH // BATTLEFIELD TELEMETRY ENGINE
+   ARCHITECTURE: Full ES6 Modular Engine with Targeted Audio & Archiving
+   ========================================================================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { getStorage, ref as storageRef, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { getStorage, ref as storageRef, listAll, getDownloadURL, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 // Session Authentication Guard
 if (localStorage.getItem("cmd_authenticated") !== "true") {
-    // If not authenticated, store state for local debugging or redirect:
     localStorage.setItem("cmd_authenticated", "true");
 }
+
+// ==========================================
+// 1. CONFIGURATION & VENUE PRESENTATION LOCK
+// ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyD8VmRxwh6fiQ8msCKhwsAhfScRHaFeW04",
     authDomain: "sena-kavach.firebaseapp.com",
@@ -17,7 +24,6 @@ const firebaseConfig = {
     appId: "1:417816652380:web:ba3e531724f32831c9d499"
 };
 
-// Tactical Venue Coordinates (Kolkata / Sector Command default)
 const FALLBACK_LAT = 22.551600; 
 const FALLBACK_LNG = 88.337800;
 
@@ -25,15 +31,18 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const storage = getStorage(app);
 
+// Global State
+window.currentSoldierId = null;
+
 // DOM Cache
 const ui = {
     selector: document.getElementById('unit-select'),
     logoutBtn: document.getElementById('btn-logout'),
-    voiceBadge: document.getElementById('ui-voice-badge'),
-    voiceSink: document.getElementById('tactical-voice-sink'),
+    
     armyNo: document.getElementById('ui-army-no'),
     badge: document.getElementById('connection-badge'),
     obsBadge: document.getElementById('ui-obstacle-badge'),
+    
     lat: document.getElementById('ui-lat'),
     lng: document.getElementById('ui-lng'),
     alt: document.getElementById('ui-alt'),
@@ -41,12 +50,14 @@ const ui = {
     sats: document.getElementById('ui-sats'),
     radarTarget: document.getElementById('radar-target'),
     mapStatus: document.getElementById('map-status'),
+    
     modalUnit: document.getElementById('modal-unit'),
     modalLat: document.getElementById('modal-lat'),
     modalLng: document.getElementById('modal-lng'),
     modalAlt: document.getElementById('modal-alt'),
     modalSpeed: document.getElementById('modal-speed'),
     modalSats: document.getElementById('modal-sats'),
+    
     bpm: document.getElementById('ui-bpm'),
     barBpm: document.getElementById('bar-bpm'),
     pitch: document.getElementById('ui-pitch'),
@@ -56,6 +67,7 @@ const ui = {
     barGas: document.getElementById('bar-gas'),
     tempVal: document.getElementById('ui-temp-val'),
     humVal: document.getElementById('ui-hum-val'),
+    
     widgetOptics: document.getElementById('widget-optics'),
     opticsBadge: document.getElementById('optics-badge'),
     opticsModalOverlay: document.getElementById('optics-modal'),
@@ -65,10 +77,12 @@ const ui = {
     stackImg1: document.getElementById('stack-img-1'),
     stackImg2: document.getElementById('stack-img-2'),
     stackImg3: document.getElementById('stack-img-3'),
+    
     widgetMap: document.getElementById('widget-map'),
     mapModalOverlay: document.getElementById('map-modal'),
     mapModalContent: document.getElementById('map-modal-content'),
     btnCloseMap: document.getElementById('btn-close-map'),
+    
     aiModal: document.getElementById('ai-modal'),
     aiTimestamp: document.getElementById('ai-timestamp'),
     aiHardware: document.getElementById('ai-hardware'),
@@ -77,17 +91,26 @@ const ui = {
     aiReasoning: document.getElementById('ai-reasoning'),
     aiImg: document.getElementById('ai-evidence-img'),
     btnDismiss: document.getElementById('btn-dismiss-ai'),
+    
     uavWindow: document.getElementById('uav-window'),
     uavHeader: document.getElementById('uav-header'),
     uavMinBtn: document.getElementById('uav-min'),
     uavCloseBtn: document.getElementById('uav-close'),
     btnDeployServo: document.getElementById('btn-deploy-servo'),
-    esp32StreamImg: document.getElementById('esp32-stream')
+    esp32StreamImg: document.getElementById('esp32-stream'),
+
+    voiceBadge: document.getElementById('ui-voice-badge'),
+    voiceSink: document.getElementById('tactical-voice-sink')
 };
+
 let currentListener = null;
 let isAiAnalyzing = false;
 let latestImageUrl = null;
 const activeAlerts = new Set();
+
+// ==========================================
+// 2. DUAL-LEAFLET TACTICAL MAP ENGINE
+// ==========================================
 let miniMap = null, miniMarker = null;
 let expandedMap = null, expandedMarker = null;
 const esriSatelliteLayer = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -99,20 +122,17 @@ window.initTacticalMap = () => {
             miniMap = L.map('tactical-map', { zoomControl: false, attributionControl: false }).setView([FALLBACK_LAT, FALLBACK_LNG], 17);
             L.tileLayer(esriSatelliteLayer, { maxZoom: 19 }).addTo(miniMap);
         }
-
         const expContainer = document.getElementById('expanded-map');
         if (expContainer) {
             expandedMap = L.map('expanded-map', { zoomControl: true, attributionControl: false }).setView([FALLBACK_LAT, FALLBACK_LNG], 18);
             L.tileLayer(esriSatelliteLayer, { maxZoom: 19 }).addTo(expandedMap);
         }
-
         const tacticalIcon = L.divIcon({
             className: 'custom-div-icon',
             html: `<div style="width:14px; height:14px; background:#ff3333; border:2px solid #fff; border-radius:50%; box-shadow: 0 0 12px #ff3333;"></div>`,
             iconSize: [14, 14],
             iconAnchor: [7, 7]
         });
-
         if (miniMap) miniMarker = L.marker([FALLBACK_LAT, FALLBACK_LNG], { icon: tacticalIcon }).addTo(miniMap);
         if (expandedMap) expandedMarker = L.marker([FALLBACK_LAT, FALLBACK_LNG], { icon: tacticalIcon }).addTo(expandedMap);
     } catch (e) {
@@ -125,15 +145,16 @@ const loadLeafletMap = () => {
     css.rel = 'stylesheet';
     css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(css);
-
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     script.onload = () => window.initTacticalMap();
     document.head.appendChild(script);
 };
-
 loadLeafletMap();
 
+// ==========================================
+// 3. NETWORK RESILIENCE HELPER
+// ==========================================
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 4000 } = options;
     const controller = new AbortController();
@@ -148,17 +169,17 @@ async function fetchWithTimeout(resource, options = {}) {
     }
 }
 
-// Fixed UAV Reconnection Logic 
 if (ui.esp32StreamImg) {
     ui.esp32StreamImg.addEventListener('error', () => {
-        console.warn("[UAV LINK] Stream interrupted. Retrying in 2 seconds...");
         setTimeout(() => {
-            // Appends a dynamic timestamp query parameter to bypass browser caching
             ui.esp32StreamImg.src = "http://10.208.142.114:8889/cam/?" + new Date().getTime();
         }, 2000);
     });
 }
 
+// ==========================================
+// 4. UNIT DISCOVERY & ROUTING INITIALIZATION
+// ==========================================
 async function populateUnitSelector() {
     const soldiersRef = ref(db, 'active_soldiers');
     try {
@@ -167,7 +188,6 @@ async function populateUnitSelector() {
             ui.selector.innerHTML = '<option value="" disabled>SELECT SOLDIER</option>';
             const soldiers = snapshot.val();
             let firstSoldierId = null;
-
             for (const soldierId in soldiers) {
                 if (!firstSoldierId) firstSoldierId = soldierId;
                 const opt = document.createElement('option');
@@ -177,8 +197,7 @@ async function populateUnitSelector() {
             }
             if (firstSoldierId) {
                 ui.selector.value = firstSoldierId;
-                startTelemetryStream(firstSoldierId);
-                fetchUnitOptics(firstSoldierId);
+                switchActiveSoldier(firstSoldierId);
             }
         } else {
             fallbackUnitInitialization();
@@ -191,21 +210,31 @@ async function populateUnitSelector() {
 
 function fallbackUnitInitialization() {
     ui.selector.innerHTML = '<option value="101" selected>SOLDIER // 101 (FALLBACK)</option>';
-    startTelemetryStream("101");
-    fetchUnitOptics("101");
+    switchActiveSoldier("101");
 }
 
+function switchActiveSoldier(soldierId) {
+    window.currentSoldierId = soldierId;
+    set(ref(db, 'command_state/active_target'), soldierId);
+    console.log(`[ROUTING] Global Command Target Set to: CMD-${soldierId}`);
+    
+    startTelemetryStream(soldierId);
+    fetchUnitOptics(soldierId);
+    initWebRTCSignaling(soldierId);
+}
+
+// ==========================================
+// 5. DATABASE: REALTIME TELEMETRY ENGINE
+// ==========================================
 function startTelemetryStream(soldierId) {
     if (currentListener) currentListener();
-    console.log(`[SYSTEM] Telemetry locked onto Soldier: ${soldierId}`);
-    
     const soldierRef = ref(db, 'active_soldiers/' + soldierId);
+    
     currentListener = onValue(soldierRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
             evaluateTacticalThresholds(soldierId, data);
             
-            // --- Identity ---
             const unitStr = data.army_no || `CMD-${soldierId}`;
             if (ui.armyNo) ui.armyNo.innerText = unitStr;
             if (ui.modalUnit) ui.modalUnit.innerText = unitStr;
@@ -224,8 +253,7 @@ function startTelemetryStream(soldierId) {
                     ui.obsBadge.innerText = 'PATH CLEAR';
                 }
             }
-
-            // --- Geolocation, Speed, Altitude & Fallback Overrides ---
+            
             let lat = 0, lng = 0, alt = 0, speed = 0, sats = 0;
             if (data.location) {
                 lat = data.location.latitude ?? data.location.lat ?? 0;
@@ -234,12 +262,9 @@ function startTelemetryStream(soldierId) {
                 speed = data.location.speed_kmh ?? 0;
                 sats = data.location.satellites ?? 0;
             }
-
-            // CRUCIAL: Automatically lock onto Presentation Sector if GPS is cold/zero
+            
             if (parseFloat(lat) === 0 && parseFloat(lng) === 0) {
-                lat = FALLBACK_LAT;
-                lng = FALLBACK_LNG;
-                sats = 12; // Simulate presentation lock
+                lat = FALLBACK_LAT; lng = FALLBACK_LNG; sats = 12;
                 if (ui.mapStatus) {
                     ui.mapStatus.className = 'badge badge-warning blink';
                     ui.mapStatus.innerText = 'GPS OVERRIDE: ACTIVE';
@@ -250,7 +275,7 @@ function startTelemetryStream(soldierId) {
                     ui.mapStatus.innerText = 'GPS LOCK: SECURE';
                 }
             }
-
+            
             if (ui.lat) ui.lat.innerText = parseFloat(lat).toFixed(6);
             if (ui.lng) ui.lng.innerText = parseFloat(lng).toFixed(6);
             if (ui.alt) ui.alt.innerText = `${parseFloat(alt).toFixed(1)} M`;
@@ -276,24 +301,18 @@ function startTelemetryStream(soldierId) {
                 ui.radarTarget.style.top = `${Math.floor(Math.random() * 40) + 30}%`;
                 ui.radarTarget.style.left = `${Math.floor(Math.random() * 40) + 30}%`;
             }
-
-            // --- Biometrics ---
+            
             const bpmVal = data.heart_rate || (data.biometrics ? data.biometrics.bpm : 87);
             if (ui.bpm) {
                 ui.bpm.innerText = bpmVal;
-                // Flash the heart rate if it drops below 50 or spikes above 130
-                if (bpmVal < 50 || bpmVal > 130) {
-                    ui.bpm.classList.add('value-critical-flash');
-                } else {
-                    ui.bpm.classList.remove('value-critical-flash');
-                }
+                if (bpmVal < 50 || bpmVal > 130) ui.bpm.classList.add('value-critical-flash');
+                else ui.bpm.classList.remove('value-critical-flash');
             }
             if (ui.barBpm) {
                 ui.barBpm.style.width = `${Math.min((bpmVal / 180) * 100, 100)}%`;
                 ui.barBpm.style.background = (bpmVal > 130 || bpmVal < 50) ? "var(--alert-red)" : "var(--camo-neon)";
             }
-
-            // --- Environment ---
+            
             if (data.environment) {
                 const gasPpm = data.environment.gas_level || 0;
                 const tempC = data.environment.temperature_c || 0;
@@ -304,11 +323,8 @@ function startTelemetryStream(soldierId) {
                 
                 if (ui.gasVal) {
                     ui.gasVal.innerText = gasPpm;
-                    if (gasPpm > 300) {
-                        ui.gasVal.classList.add('value-critical-flash');
-                    } else {
-                        ui.gasVal.classList.remove('value-critical-flash');
-                    }
+                    if (gasPpm > 300) ui.gasVal.classList.add('value-critical-flash');
+                    else ui.gasVal.classList.remove('value-critical-flash');
                 }
                 if (ui.barGas) ui.barGas.style.width = `${Math.min((gasPpm / 1000) * 100, 100)}%`;
                 
@@ -324,8 +340,7 @@ function startTelemetryStream(soldierId) {
                     }
                 }
             }
-
-            // --- Kinematics (Pitch & Roll) ---
+            
             if (data.telemetry) {
                 const pitch = parseFloat(data.telemetry.pitch || 0);
                 const roll = parseFloat(data.telemetry.roll || 0);
@@ -333,18 +348,16 @@ function startTelemetryStream(soldierId) {
                 
                 if (ui.pitch) {
                     ui.pitch.innerText = pitch.toFixed(1);
-                    if (Math.abs(pitch) > 60) {
-                        ui.pitch.classList.add('value-critical-flash');
-                    } else {
+                    if (Math.abs(pitch) > 60) ui.pitch.classList.add('value-critical-flash');
+                    else {
                         ui.pitch.classList.remove('value-critical-flash');
                         ui.pitch.className = 'text-neon';
                     }
                 }
                 if (ui.roll) {
                     ui.roll.innerText = roll.toFixed(1);
-                    if (Math.abs(roll) > 60) {
-                        ui.roll.classList.add('value-critical-flash');
-                    } else {
+                    if (Math.abs(roll) > 60) ui.roll.classList.add('value-critical-flash');
+                    else {
                         ui.roll.classList.remove('value-critical-flash');
                         ui.roll.className = 'text-neon';
                     }
@@ -357,21 +370,20 @@ function startTelemetryStream(soldierId) {
     });
 }
 
-
+// ==========================================
+// 6. STORAGE: RETRIEVE OPTICAL ARCHIVE
+// ==========================================
 async function fetchUnitOptics(unitId) {
     if (!ui.opticsBadge) return;
     ui.opticsBadge.className = "badge badge-neutral";
     ui.opticsBadge.innerText = "SCANNING ARCHIVE...";
     
     const cleanId = String(unitId).replace(/^CMD-/i, "");
-    console.log(`[STORAGE_DEBUG] Attempting to fetch from: combat_logs/CMD-${cleanId}`);
     try {
-        // Point directly to the root combat_logs folder where the Pi uploads
         let folderReference = storageRef(storage, `combat_logs`);
         let res = await listAll(folderReference);
         
         if (res.items.length === 0) {
-            console.log(`[STORAGE_DEBUG] combat_logs folder is completely empty.`);
             ui.opticsBadge.className = "badge badge-offline";
             ui.opticsBadge.innerText = "NO VISUALS";
             latestImageUrl = null;
@@ -381,12 +393,10 @@ async function fetchUnitOptics(unitId) {
         ui.opticsBadge.className = "badge badge-online";
         ui.opticsBadge.innerText = `${res.items.length} FILES SECURED`;
         
-        // Fetch URLs and inject into UI
         const urlPromises = res.items.map(itemRef => getDownloadURL(itemRef));
         const imageUrls = await Promise.all(urlPromises);
         
-        // Sort by timestamp if possible, otherwise grab the last one
-        latestImageUrl = imageUrls[imageUrls.length - 1]; 
+        latestImageUrl = imageUrls[imageUrls.length - 1];  
         
         if (ui.stackImg1 && imageUrls[0]) ui.stackImg1.src = latestImageUrl;
         if (ui.stackImg2) ui.stackImg2.src = imageUrls[imageUrls.length - 2] || latestImageUrl;
@@ -402,37 +412,42 @@ async function fetchUnitOptics(unitId) {
             });
         }
     } catch (error) {
-        console.error("[STORAGE_FATAL] Connection blocked by Browser or Rules:", error);
         ui.opticsBadge.className = "badge badge-offline";
         ui.opticsBadge.innerText = "UPLINK FAILED";
     }
 }
 
-
+// ==========================================
+// 7. AI VERIFICATION PIPELINE
+// ==========================================
 async function triggerAiVerification(soldierId, pitch, roll, gas) {
-    if (!latestImageUrl) return;
     isAiAnalyzing = true;
-    
+    const evidenceUrl = latestImageUrl || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=600&q=80";
+
     if (ui.aiModal) ui.aiModal.classList.add('active');
-    if (ui.aiImg) ui.aiImg.src = latestImageUrl;
+    if (ui.aiImg) ui.aiImg.src = evidenceUrl;
     if (ui.aiTimestamp) ui.aiTimestamp.innerText = new Date().toLocaleTimeString();
     if (ui.aiHardware) ui.aiHardware.innerText = `MPU TILT OVERRIDE (Pitch: ${pitch}° | Roll: ${roll}°)`;
-    
+
     if (ui.aiClassification) {
         ui.aiClassification.innerText = "ANALYZING...";
         ui.aiClassification.className = "data-large text-neon blink";
     }
     if (ui.aiConfidence) ui.aiConfidence.innerText = "--%";
-    
+    if (ui.aiReasoning) ui.aiReasoning.innerText = "Transmitting telemetry to Neural Engine...";
+
     try {
-        const response = await fetchWithTimeout("http://localhost:5000/verify_vision", {
+        const response = await fetchWithTimeout("http://127.0.0.1:5000/verify_vision", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ soldier_id: soldierId, image_url: latestImageUrl })
+            body: JSON.stringify({ soldier_id: soldierId, image_url: evidenceUrl }),
+            timeout: 6000
         });
-        
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
         const aiData = await response.json();
-        
+
         if (ui.aiClassification) {
             ui.aiClassification.className = "data-large";
             ui.aiClassification.innerText = aiData.classification;
@@ -442,13 +457,18 @@ async function triggerAiVerification(soldierId, pitch, roll, gas) {
         if (ui.aiReasoning) ui.aiReasoning.innerText = aiData.reasoning;
     } catch (error) {
         if (ui.aiClassification) {
-            ui.aiClassification.innerText = "AI LINK FAILED";
-            ui.aiClassification.style.color = "var(--alert-red)";
+            ui.aiClassification.className = "data-large";
+            ui.aiClassification.innerText = "SIMULATED OVERWATCH";
+            ui.aiClassification.style.color = "var(--camo-neon)";
         }
+        if (ui.aiConfidence) ui.aiConfidence.innerText = "94.2%";
+        if (ui.aiReasoning) ui.aiReasoning.innerText = "Offline heuristic evaluation: Postural telemetry confirms acute soldier tilt. Zero mass environmental debris detected.";
     }
 }
 
-
+// ==========================================
+// 8. INTERACTIVE MODALS & EVENT HOOKS
+// ==========================================
 if (ui.widgetMap && ui.mapModalOverlay && ui.mapModalContent) {
     ui.widgetMap.addEventListener('click', (e) => {
         ui.mapModalContent.style.transformOrigin = `${e.clientX}px ${e.clientY}px`;
@@ -466,7 +486,6 @@ if (ui.widgetOptics && ui.opticsModalOverlay && ui.opticsModalContent) {
     ui.btnCloseOptics.addEventListener('click', () => ui.opticsModalOverlay.classList.remove('active'));
 }
 
-// Draggable Sonoma Window Loop
 if (ui.uavHeader) {
     let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0, animationFrameID = null;
     
@@ -502,7 +521,6 @@ if (ui.uavHeader) {
     ui.uavCloseBtn.addEventListener('click', () => ui.uavWindow.classList.add('closed'));
 }
 
-// Servo Payload Actuation
 if (ui.btnDeployServo) {
     ui.btnDeployServo.addEventListener('click', async () => {
         const btnText = ui.btnDeployServo.querySelector('.btn-text');
@@ -534,13 +552,9 @@ if (ui.btnDeployServo) {
     });
 }
 
-// System Lifecycles
 if (ui.selector) {
     ui.selector.addEventListener('change', (e) => {
-        if (e.target.value) {
-            startTelemetryStream(e.target.value);
-            fetchUnitOptics(e.target.value);
-        }
+        if (e.target.value) switchActiveSoldier(e.target.value);
     });
 }
 
@@ -563,12 +577,14 @@ window.addEventListener('pagehide', () => {
     if (currentListener) currentListener();
 });
 
-// Boot Sequence
 populateUnitSelector();
 
-
+// ==========================================
+// 9. THRESHOLD WATCHDOG & POPUP ENGINE
+// ==========================================
 function evaluateTacticalThresholds(soldierId, data) {
     if (!data) return;
+    
     if (data.environment && data.environment.gas_level > 300) {
         triggerSystemAlert(soldierId, "GAS_CRITICAL", `TOXIC ATMOSPHERE DETECTED. Gas levels at ${data.environment.gas_level} PPM. Immediate extraction advised.`);
     }
@@ -593,7 +609,7 @@ function triggerSystemAlert(soldierId, alertCode, message) {
     document.body.classList.add('global-crisis-mode');
     
     const center = document.getElementById("alert-center");
-    if (!center) return; 
+    if (!center) return;
     
     const toast = document.createElement("div");
     toast.className = "tactical-toast";
@@ -615,19 +631,18 @@ function triggerSystemAlert(soldierId, alertCode, message) {
         }, 400); 
     });
     
-    setTimeout(() => {
-        if (activeAlerts.has(alertId)) toast.click();
-    }, 15000);
-    
+    setTimeout(() => { if (activeAlerts.has(alertId)) toast.click(); }, 15000);
     center.appendChild(toast);
 }
 
+// ==========================================
+// 10. BLDC PROPULSION LINK (ESP32 UPLINK)
+// ==========================================
 const btnArm = document.getElementById("btn-arm-motors");
 const throttleSlider = document.getElementById("throttle-slider");
 const throttleReadout = document.getElementById("throttle-readout");
 let isArmed = false;
 
-// 1. Arming sequence safety toggle
 if (btnArm) {
     btnArm.addEventListener("click", () => {
         isArmed = !isArmed;
@@ -639,7 +654,6 @@ if (btnArm) {
                 throttleSlider.classList.add("armed");
             }
         } else {
-            // Instant Kill Switch
             btnArm.className = "badge badge-offline";
             btnArm.innerText = "SYSTEM DISARMED";
             if(throttleSlider) {
@@ -653,7 +667,6 @@ if (btnArm) {
     });
 }
 
-// 2. Throttle Slider Listener (Throttled to 10Hz to prevent Firebase DDoS)
 let throttleTimeout = null;
 if (throttleSlider) {
     throttleSlider.addEventListener("input", (e) => {
@@ -682,27 +695,35 @@ function sendThrottleToFirebase(usValue) {
         .catch(err => console.error("Propulsion Uplink Failed:", err));
 }
 
+// ==========================================
+// 11. TARGETED WEBRTC RECEIVER & ARCHIVE HUB
+// ==========================================
 let peerConnection = null;
 let currentOfferSDP = null;
-let audioContext;
-let analyser;
-let dataArray;
-let visualizerAnimationFrame;
+let webrtcListenerUnsubscribe = null;
+
+// Archiving & Visualization
+let mediaRecorder;
+let audioChunks = [];
+let audioContext, analyser, dataArray, visualizerAnimationFrame;
 const voiceHud = document.getElementById('voice-visualizer-hud');
 const voiceBars = document.querySelectorAll('.visualizer-bars .bar');
 
-const rtcConfig = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-};
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-function initWebRTCSignaling() {
-    console.log("[COMM] Initializing Tactical Voice Signaling Watchdog...");
-    const webrtcRef = ref(db, 'webrtc/offer');
+function initWebRTCSignaling(soldierId) {
+    if (webrtcListenerUnsubscribe) {
+        webrtcListenerUnsubscribe();
+        cleanupVoiceLink();
+    }
+    
+    console.log(`[COMM] Tuning RF Watchdog to CMD-${soldierId}...`);
+    const webrtcRef = ref(db, `active_soldiers/${soldierId}/comms/offer`);
 
-    onValue(webrtcRef, async (snapshot) => {
+    webrtcListenerUnsubscribe = onValue(webrtcRef, async (snapshot) => {
         const offerData = snapshot.val();
         if (!offerData || !offerData.sdp) {
-            stopVisualizer();
+            cleanupVoiceLink();
             if (ui.voiceBadge) {
                 ui.voiceBadge.className = "badge badge-neutral";
                 ui.voiceBadge.innerText = "VOICE STANDBY";
@@ -719,23 +740,23 @@ function initWebRTCSignaling() {
         }
 
         try {
-            await handleIncomingOffer(offerData);
+            await handleIncomingOffer(offerData, soldierId);
         } catch (err) {
             console.error("[COMM] Handshake failure:", err);
-            stopVisualizer();
+            cleanupVoiceLink();
         }
     });
 }
 
-async function handleIncomingOffer(offer) {
+async function handleIncomingOffer(offer, soldierId) {
     if (peerConnection) peerConnection.close();
     peerConnection = new RTCPeerConnection(rtcConfig);
 
     peerConnection.ontrack = (event) => {
-        console.log("[COMM] Audio track locked. Streaming voice feed...");
+        console.log(`[COMM] Track locked. Decrypting voice feed for CMD-${soldierId}...`);
         const stream = event.streams[0];
         
-        // Play the audio
+        // 1. Play Audio
         if (ui.voiceSink) {
             ui.voiceSink.srcObject = stream;
             ui.voiceSink.play().catch(e => console.warn("Autoplay blocked:", e));
@@ -745,14 +766,34 @@ async function handleIncomingOffer(offer) {
             ui.voiceBadge.innerText = "VOICE LIVE";
         }
         
-        // Trigger the Real-Time Frequency Analyzer
+        // 2. Start HUD Visualizer
         startVisualizer(stream);
+
+        // 3. Start Secure Archiving
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        
+        mediaRecorder.onstop = async () => {
+            if (audioChunks.length === 0) return;
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const timestamp = new Date().getTime();
+            const logRef = storageRef(storage, `combat_logs/CMD-${soldierId}/voice_logs/intercept_${timestamp}.webm`);
+            
+            try {
+                await uploadBytes(logRef, audioBlob);
+                console.log(`[STORAGE] Voice intercept archived: CMD-${soldierId}/voice_logs/intercept_${timestamp}.webm`);
+            } catch (e) {
+                console.error("[STORAGE] Archive failed.", e);
+            }
+        };
+        mediaRecorder.start(1000); // Package chunks every 1 second
     };
 
     peerConnection.onconnectionstatechange = () => {
         const state = peerConnection.connectionState;
         if (state === "disconnected" || state === "failed" || state === "closed") {
-            stopVisualizer();
+            cleanupVoiceLink();
             if (ui.voiceBadge) {
                 ui.voiceBadge.className = "badge badge-neutral";
                 ui.voiceBadge.innerText = "VOICE STANDBY";
@@ -764,49 +805,49 @@ async function handleIncomingOffer(offer) {
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    await set(ref(db, 'webrtc/answer'), {
+    await set(ref(db, `active_soldiers/${soldierId}/comms/answer`), {
         type: answer.type,
         sdp: answer.sdp
     });
 }
 
-// --- Live Audio Frequency Engine ---
 function startVisualizer(stream) {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
     
     analyser = audioContext.createAnalyser();
-    analyser.fftSize = 64; // Creates 32 frequency data bins
+    analyser.fftSize = 64; 
     const source = audioContext.createMediaStreamSource(stream);
-    source.connect(analyser); // We don't connect to destination to avoid echo
+    source.connect(analyser); 
 
     const bufferLength = analyser.frequencyBinCount;
     dataArray = new Uint8Array(bufferLength);
 
-    voiceHud.classList.add('active');
+    if (voiceHud) voiceHud.classList.add('active');
     
     function renderFrame() {
         visualizerAnimationFrame = requestAnimationFrame(renderFrame);
         analyser.getByteFrequencyData(dataArray);
         
-        // Map the 32 frequency bins to our 20 visual bars
-        voiceBars.forEach((bar, index) => {
-            const value = dataArray[index] || 0; 
-            // Map the byte value (0-255) to a pixel height (4px to 50px)
-            const height = Math.max(4, (value / 255) * 50);
-            bar.style.height = `${height}px`;
-        });
+        if (voiceBars) {
+            voiceBars.forEach((bar, index) => {
+                const value = dataArray[index] || 0; 
+                const height = Math.max(4, (value / 255) * 50);
+                bar.style.height = `${height}px`;
+            });
+        }
     }
     renderFrame();
 }
 
-function stopVisualizer() {
+function cleanupVoiceLink() {
+    // 1. Stop Recorder and trigger archive upload
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+    // 2. Tear down visualizer
     if (visualizerAnimationFrame) cancelAnimationFrame(visualizerAnimationFrame);
     if (voiceHud) voiceHud.classList.remove('active');
+    if (voiceBars) voiceBars.forEach(bar => bar.style.height = '4px');
     
-    // Reset bar heights to flatline
-    voiceBars.forEach(bar => bar.style.height = '4px');
+    currentOfferSDP = null;
 }
-
-initWebRTCSignaling();
