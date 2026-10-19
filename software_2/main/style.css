@@ -724,3 +724,55 @@ body {
 .tactical-slider:active::-webkit-slider-thumb { transform: scale(1.1); }
 .tactical-slider:disabled::-webkit-slider-thumb { background: #555; box-shadow: none; cursor: not-allowed; }
 .tactical-slider.armed::-webkit-slider-thumb { background: var(--camo-neon); box-shadow: 0 0 10px var(--camo-neon); }
+/* ==========================================
+   TACTICAL VOICE VISUALIZER HUD
+   ========================================== */
+.voice-comms-hud {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(10, 15, 10, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--camo-neon);
+    border-radius: var(--radius-lg);
+    padding: 20px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 10px 40px rgba(118, 185, 0, 0.25), inset 0 0 20px rgba(118, 185, 0, 0.1);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.6s var(--spring);
+    z-index: 10000;
+}
+
+.voice-comms-hud.active {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.comms-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.visualizer-bars {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 50px;
+}
+
+.visualizer-bars .bar {
+    width: 6px;
+    background: var(--camo-neon);
+    border-radius: 4px;
+    height: 4px; /* Idle height */
+    box-shadow: 0 0 12px var(--camo-neon);
+    /* No CSS transition here so it reacts instantly to the JS Web Audio API */
+}
