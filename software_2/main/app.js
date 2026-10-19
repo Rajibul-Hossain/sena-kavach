@@ -1,8 +1,3 @@
-/* ==========================================================================
-   SENA KAVACH // BATTLEFIELD TELEMETRY ENGINE
-   ARCHITECTURE: Full ES6 Modular Engine with Dual Leaflet & Presentation Locks
-   ========================================================================== */
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { getStorage, ref as storageRef, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
@@ -12,10 +7,6 @@ if (localStorage.getItem("cmd_authenticated") !== "true") {
     // If not authenticated, store state for local debugging or redirect:
     localStorage.setItem("cmd_authenticated", "true");
 }
-
-// ==========================================
-// 1. CONFIGURATION & VENUE PRESENTATION LOCK
-// ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyD8VmRxwh6fiQ8msCKhwsAhfScRHaFeW04",
     authDomain: "sena-kavach.firebaseapp.com",
@@ -38,13 +29,11 @@ const storage = getStorage(app);
 const ui = {
     selector: document.getElementById('unit-select'),
     logoutBtn: document.getElementById('btn-logout'),
-    
-    // Identity & Tactical Status
+    voiceBadge: document.getElementById('ui-voice-badge'),
+    voiceSink: document.getElementById('tactical-voice-sink'),
     armyNo: document.getElementById('ui-army-no'),
     badge: document.getElementById('connection-badge'),
     obsBadge: document.getElementById('ui-obstacle-badge'),
-    
-    // Geolocation, Navigation & Maps
     lat: document.getElementById('ui-lat'),
     lng: document.getElementById('ui-lng'),
     alt: document.getElementById('ui-alt'),
@@ -52,16 +41,12 @@ const ui = {
     sats: document.getElementById('ui-sats'),
     radarTarget: document.getElementById('radar-target'),
     mapStatus: document.getElementById('map-status'),
-    
-    // Map Modal Telemetry
     modalUnit: document.getElementById('modal-unit'),
     modalLat: document.getElementById('modal-lat'),
     modalLng: document.getElementById('modal-lng'),
     modalAlt: document.getElementById('modal-alt'),
     modalSpeed: document.getElementById('modal-speed'),
     modalSats: document.getElementById('modal-sats'),
-    
-    // Biometrics, Environment & Kinematics
     bpm: document.getElementById('ui-bpm'),
     barBpm: document.getElementById('bar-bpm'),
     pitch: document.getElementById('ui-pitch'),
@@ -71,8 +56,6 @@ const ui = {
     barGas: document.getElementById('bar-gas'),
     tempVal: document.getElementById('ui-temp-val'),
     humVal: document.getElementById('ui-hum-val'),
-    
-    // Modals & UI Hooks
     widgetOptics: document.getElementById('widget-optics'),
     opticsBadge: document.getElementById('optics-badge'),
     opticsModalOverlay: document.getElementById('optics-modal'),
@@ -82,12 +65,10 @@ const ui = {
     stackImg1: document.getElementById('stack-img-1'),
     stackImg2: document.getElementById('stack-img-2'),
     stackImg3: document.getElementById('stack-img-3'),
-    
     widgetMap: document.getElementById('widget-map'),
     mapModalOverlay: document.getElementById('map-modal'),
     mapModalContent: document.getElementById('map-modal-content'),
     btnCloseMap: document.getElementById('btn-close-map'),
-    
     aiModal: document.getElementById('ai-modal'),
     aiTimestamp: document.getElementById('ai-timestamp'),
     aiHardware: document.getElementById('ai-hardware'),
@@ -96,7 +77,6 @@ const ui = {
     aiReasoning: document.getElementById('ai-reasoning'),
     aiImg: document.getElementById('ai-evidence-img'),
     btnDismiss: document.getElementById('btn-dismiss-ai'),
-    
     uavWindow: document.getElementById('uav-window'),
     uavHeader: document.getElementById('uav-header'),
     uavMinBtn: document.getElementById('uav-min'),
@@ -104,16 +84,10 @@ const ui = {
     btnDeployServo: document.getElementById('btn-deploy-servo'),
     esp32StreamImg: document.getElementById('esp32-stream')
 };
-
 let currentListener = null;
 let isAiAnalyzing = false;
 let latestImageUrl = null;
 const activeAlerts = new Set();
-
-
-// ==========================================
-// 2. DUAL-LEAFLET TACTICAL MAP ENGINE
-// ==========================================
 let miniMap = null, miniMarker = null;
 let expandedMap = null, expandedMarker = null;
 const esriSatelliteLayer = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -160,10 +134,6 @@ const loadLeafletMap = () => {
 
 loadLeafletMap();
 
-
-// ==========================================
-// 3. NETWORK RESILIENCE HELPER
-// ==========================================
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 4000 } = options;
     const controller = new AbortController();
@@ -189,10 +159,6 @@ if (ui.esp32StreamImg) {
     });
 }
 
-
-// ==========================================
-// 4. UNIT DISCOVERY & FAILSAFE POPULATOR
-// ==========================================
 async function populateUnitSelector() {
     const soldiersRef = ref(db, 'active_soldiers');
     try {
@@ -229,10 +195,6 @@ function fallbackUnitInitialization() {
     fetchUnitOptics("101");
 }
 
-
-// ==========================================
-// 5. DATABASE: REALTIME TELEMETRY ENGINE
-// ==========================================
 function startTelemetryStream(soldierId) {
     if (currentListener) currentListener();
     console.log(`[SYSTEM] Telemetry locked onto Soldier: ${soldierId}`);
@@ -396,9 +358,6 @@ function startTelemetryStream(soldierId) {
 }
 
 
-// ==========================================
-// 6. STORAGE: RETRIEVE OPTICAL ARCHIVE
-// ==========================================
 async function fetchUnitOptics(unitId) {
     if (!ui.opticsBadge) return;
     ui.opticsBadge.className = "badge badge-neutral";
@@ -450,9 +409,6 @@ async function fetchUnitOptics(unitId) {
 }
 
 
-// ==========================================
-// 7. AI VERIFICATION PIPELINE
-// ==========================================
 async function triggerAiVerification(soldierId, pitch, roll, gas) {
     if (!latestImageUrl) return;
     isAiAnalyzing = true;
@@ -493,9 +449,6 @@ async function triggerAiVerification(soldierId, pitch, roll, gas) {
 }
 
 
-// ==========================================
-// 8. INTERACTIVE MODALS & EVENT HOOKS
-// ==========================================
 if (ui.widgetMap && ui.mapModalOverlay && ui.mapModalContent) {
     ui.widgetMap.addEventListener('click', (e) => {
         ui.mapModalContent.style.transformOrigin = `${e.clientX}px ${e.clientY}px`;
@@ -614,23 +567,16 @@ window.addEventListener('pagehide', () => {
 populateUnitSelector();
 
 
-// ==========================================
-// 9. THRESHOLD WATCHDOG & POPUP ENGINE
-// ==========================================
 function evaluateTacticalThresholds(soldierId, data) {
     if (!data) return;
-    
-    // 1. Gas Threshold (> 300 PPM)
     if (data.environment && data.environment.gas_level > 300) {
         triggerSystemAlert(soldierId, "GAS_CRITICAL", `TOXIC ATMOSPHERE DETECTED. Gas levels at ${data.environment.gas_level} PPM. Immediate extraction advised.`);
     }
     
-    // 2. Kinematic Threshold (Pitch/Roll > 60 degrees)
     if (data.telemetry && (Math.abs(data.telemetry.pitch) > 60 || Math.abs(data.telemetry.roll) > 60)) {
         triggerSystemAlert(soldierId, "ATTITUDE_CRITICAL", `SEVERE KINEMATIC TRAUMA. Pitch: ${parseFloat(data.telemetry.pitch).toFixed(1)}° | Roll: ${parseFloat(data.telemetry.roll).toFixed(1)}°. Possible casualty or drone crash.`);
     }
     
-    // 3. Biometric Threshold (Heart Rate > 130 or < 50)
     let bpm = data.heart_rate || (data.biometrics ? data.biometrics.bpm : null);
     if (bpm) {
         if (bpm > 130) triggerSystemAlert(soldierId, "BPM_TACHYCARDIA", `ACUTE CARDIAC STRESS. Heart rate sustained at ${bpm} BPM.`);
@@ -676,10 +622,6 @@ function triggerSystemAlert(soldierId, alertCode, message) {
     center.appendChild(toast);
 }
 
-
-// ==========================================
-// 10. BLDC PROPULSION LINK (ESP32 UPLINK)
-// ==========================================
 const btnArm = document.getElementById("btn-arm-motors");
 const throttleSlider = document.getElementById("throttle-slider");
 const throttleReadout = document.getElementById("throttle-readout");
@@ -739,3 +681,85 @@ function sendThrottleToFirebase(usValue) {
     set(ref(db, 'uav_commands/throttle_us'), usValue)
         .catch(err => console.error("Propulsion Uplink Failed:", err));
 }
+let peerConnection = null;
+let currentOfferSDP = null;
+
+const rtcConfig = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+    ]
+};
+
+function initWebRTCSignaling() {
+    console.log("[COMM] Initializing Tactical Voice Signaling Watchdog...");
+    const webrtcRef = ref(db, 'webrtc/offer');
+    onValue(webrtcRef, async (snapshot) => {
+        const offerData = snapshot.val();
+        if (!offerData || !offerData.sdp) {
+            if (ui.voiceBadge) {
+                ui.voiceBadge.className = "badge badge-neutral";
+                ui.voiceBadge.innerText = "VOICE STANDBY";
+            }
+            return;
+        }
+        if (offerData.sdp === currentOfferSDP) return;
+        currentOfferSDP = offerData.sdp;
+
+        console.log("[COMM] Secure WebRTC Offer detected from field operator.");
+        if (ui.voiceBadge) {
+            ui.voiceBadge.className = "badge badge-warning blink";
+            ui.voiceBadge.innerText = "LINK NEGOTIATING...";
+        }
+
+        try {
+            await handleIncomingOffer(offerData);
+        } catch (err) {
+            console.error("[COMM] Handshake failure:", err);
+            if (ui.voiceBadge) {
+                ui.voiceBadge.className = "badge badge-offline";
+                ui.voiceBadge.innerText = "VOICE FAILED";
+            }
+        }
+    });
+}
+
+async function handleIncomingOffer(offer) {
+    if (peerConnection) {
+        peerConnection.close();
+    }
+
+    peerConnection = new RTCPeerConnection(rtcConfig);
+    peerConnection.ontrack = (event) => {
+        console.log("[COMM] Audio track locked. Streaming voice feed...");
+        if (ui.voiceSink) {
+            ui.voiceSink.srcObject = event.streams[0];
+            ui.voiceSink.play().catch(e => {
+                console.warn("[COMM] Browser autoplay blocked audio. Click dashboard to enable:", e);
+            });
+        }
+        if (ui.voiceBadge) {
+            ui.voiceBadge.className = "badge badge-online blink";
+            ui.voiceBadge.innerText = "VOICE LIVE";
+        }
+    };
+
+    peerConnection.onconnectionstatechange = () => {
+        const state = peerConnection.connectionState;
+        console.log(`[COMM] WebRTC State Changed: ${state}`);
+        if (state === "disconnected" || state === "failed" || state === "closed") {
+            if (ui.voiceBadge) {
+                ui.voiceBadge.className = "badge badge-neutral";
+                ui.voiceBadge.innerText = "VOICE STANDBY";
+            }
+        }
+    };
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    await set(ref(db, 'webrtc/answer'), {
+        type: answer.type,
+        sdp: answer.sdp
+    });
+    console.log("[COMM] SDP Answer dispatched to Firebase.");
+}
+initWebRTCSignaling();
