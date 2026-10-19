@@ -4,7 +4,7 @@
    ========================================================================== */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { getStorage, ref as storageRef, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 // Session Authentication Guard
@@ -108,6 +108,8 @@ const ui = {
 let currentListener = null;
 let isAiAnalyzing = false;
 let latestImageUrl = null;
+const activeAlerts = new Set();
+
 
 // ==========================================
 // 2. DUAL-LEAFLET TACTICAL MAP ENGINE
@@ -158,6 +160,7 @@ const loadLeafletMap = () => {
 
 loadLeafletMap();
 
+
 // ==========================================
 // 3. NETWORK RESILIENCE HELPER
 // ==========================================
@@ -175,12 +178,17 @@ async function fetchWithTimeout(resource, options = {}) {
     }
 }
 
+// Fixed UAV Reconnection Logic 
 if (ui.esp32StreamImg) {
     ui.esp32StreamImg.addEventListener('error', () => {
-        ui.esp32StreamImg.onerror = null;
-        ui.esp32StreamImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='380' height='220' viewBox='0 0 380 220'><rect width='100%' height='100%' fill='%230a0c0a'/><path d='M0 0l380 220M380 0L0 220' stroke='%23121a12' stroke-width='2'/><text x='50%' y='50%' fill='%23ff3333' font-family='monospace' font-size='14' font-weight='bold' text-anchor='middle'>[ UAV LINK TIMED OUT ]</text></svg>";
+        console.warn("[UAV LINK] Stream interrupted. Retrying in 2 seconds...");
+        setTimeout(() => {
+            // Appends a dynamic timestamp query parameter to bypass browser caching
+            ui.esp32StreamImg.src = "http://10.208.142.114:8889/cam/?" + new Date().getTime();
+        }, 2000);
     });
 }
+
 
 // ==========================================
 // 4. UNIT DISCOVERY & FAILSAFE POPULATOR
@@ -193,6 +201,7 @@ async function populateUnitSelector() {
             ui.selector.innerHTML = '<option value="" disabled>SELECT SOLDIER</option>';
             const soldiers = snapshot.val();
             let firstSoldierId = null;
+
             for (const soldierId in soldiers) {
                 if (!firstSoldierId) firstSoldierId = soldierId;
                 const opt = document.createElement('option');
@@ -220,6 +229,7 @@ function fallbackUnitInitialization() {
     fetchUnitOptics("101");
 }
 
+
 // ==========================================
 // 5. DATABASE: REALTIME TELEMETRY ENGINE
 // ==========================================
@@ -232,6 +242,7 @@ function startTelemetryStream(soldierId) {
         const data = snapshot.val();
         if (data) {
             evaluateTacticalThresholds(soldierId, data);
+            
             // --- Identity ---
             const unitStr = data.army_no || `CMD-${soldierId}`;
             if (ui.armyNo) ui.armyNo.innerText = unitStr;
@@ -283,13 +294,13 @@ function startTelemetryStream(soldierId) {
             if (ui.alt) ui.alt.innerText = `${parseFloat(alt).toFixed(1)} M`;
             if (ui.speed) ui.speed.innerText = `${parseFloat(speed).toFixed(1)} KM/H`;
             if (ui.sats) ui.sats.innerText = sats;
-
+            
             if (ui.modalLat) ui.modalLat.innerText = parseFloat(lat).toFixed(6);
             if (ui.modalLng) ui.modalLng.innerText = parseFloat(lng).toFixed(6);
             if (ui.modalAlt) ui.modalAlt.innerText = `${parseFloat(alt).toFixed(1)} M`;
             if (ui.modalSpeed) ui.modalSpeed.innerText = `${parseFloat(speed).toFixed(1)} KM/H`;
             if (ui.modalSats) ui.modalSats.innerText = sats;
-
+            
             if (miniMap && miniMarker) {
                 miniMap.setView([lat, lng], 17);
                 miniMarker.setLatLng([lat, lng]);
@@ -303,7 +314,8 @@ function startTelemetryStream(soldierId) {
                 ui.radarTarget.style.top = `${Math.floor(Math.random() * 40) + 30}%`;
                 ui.radarTarget.style.left = `${Math.floor(Math.random() * 40) + 30}%`;
             }
-// --- Biometrics ---
+
+            // --- Biometrics ---
             const bpmVal = data.heart_rate || (data.biometrics ? data.biometrics.bpm : 87);
             if (ui.bpm) {
                 ui.bpm.innerText = bpmVal;
@@ -324,22 +336,20 @@ function startTelemetryStream(soldierId) {
                 const gasPpm = data.environment.gas_level || 0;
                 const tempC = data.environment.temperature_c || 0;
                 const humRh = data.environment.humidity_rh || 0;
-
+                
                 if (ui.tempVal) ui.tempVal.innerText = `${parseFloat(tempC).toFixed(1)}°C`;
                 if (ui.humVal) ui.humVal.innerText = `${parseFloat(humRh).toFixed(1)}%`;
                 
                 if (ui.gasVal) {
                     ui.gasVal.innerText = gasPpm;
-                    // Flash the exact PPM number if it crosses 300
                     if (gasPpm > 300) {
                         ui.gasVal.classList.add('value-critical-flash');
                     } else {
                         ui.gasVal.classList.remove('value-critical-flash');
                     }
                 }
-                
                 if (ui.barGas) ui.barGas.style.width = `${Math.min((gasPpm / 1000) * 100, 100)}%`;
-
+                
                 if (ui.gasStatus) {
                     if (gasPpm < 300) {
                         ui.gasStatus.className = 'badge badge-online';
@@ -358,10 +368,9 @@ function startTelemetryStream(soldierId) {
                 const pitch = parseFloat(data.telemetry.pitch || 0);
                 const roll = parseFloat(data.telemetry.roll || 0);
                 const gas = data.environment ? data.environment.gas_level : 0;
-
+                
                 if (ui.pitch) {
                     ui.pitch.innerText = pitch.toFixed(1);
-                    // Flash specific axis if it breaches 60 degrees
                     if (Math.abs(pitch) > 60) {
                         ui.pitch.classList.add('value-critical-flash');
                     } else {
@@ -378,7 +387,6 @@ function startTelemetryStream(soldierId) {
                         ui.roll.className = 'text-neon';
                     }
                 }
-
                 if ((Math.abs(pitch) > 60 || Math.abs(roll) > 60) && !isAiAnalyzing) {
                     triggerAiVerification(soldierId, pitch, roll, gas);
                 }
@@ -386,6 +394,8 @@ function startTelemetryStream(soldierId) {
         }
     });
 }
+
+
 // ==========================================
 // 6. STORAGE: RETRIEVE OPTICAL ARCHIVE
 // ==========================================
@@ -393,47 +403,36 @@ async function fetchUnitOptics(unitId) {
     if (!ui.opticsBadge) return;
     ui.opticsBadge.className = "badge badge-neutral";
     ui.opticsBadge.innerText = "SCANNING ARCHIVE...";
-
-    // FATAL FLAW FIX: Strip any existing "CMD-" or "cmd-" from the ID
-    // If unitId is "CMD-101", this reduces it to "101" so we don't query "CMD-CMD-101"
-    const cleanId = String(unitId).replace(/^CMD-/i, "");
     
+    const cleanId = String(unitId).replace(/^CMD-/i, "");
     console.log(`[STORAGE_DEBUG] Attempting to fetch from: combat_logs/CMD-${cleanId}`);
-
     try {
-        // First attempt: Uppercase (CMD-101)
-        let folderReference = storageRef(storage, `combat_logs/CMD-${cleanId}`);
+        // Point directly to the root combat_logs folder where the Pi uploads
+        let folderReference = storageRef(storage, `combat_logs`);
         let res = await listAll(folderReference);
-
-        // Second attempt: Fallback to Lowercase if empty (cmd-101)
+        
         if (res.items.length === 0) {
-            console.log(`[STORAGE_DEBUG] Uppercase folder empty. Trying: combat_logs/cmd-${cleanId}`);
-            folderReference = storageRef(storage, `combat_logs/cmd-${cleanId}`);
-            res = await listAll(folderReference);
-        }
-
-        // Final check: If still empty, abort gracefully
-        if (res.items.length === 0) {
-            console.log(`[STORAGE_DEBUG] Both folders are completely empty.`);
+            console.log(`[STORAGE_DEBUG] combat_logs folder is completely empty.`);
             ui.opticsBadge.className = "badge badge-offline";
             ui.opticsBadge.innerText = "NO VISUALS";
             latestImageUrl = null;
             return;
         }
-
+        
         ui.opticsBadge.className = "badge badge-online";
         ui.opticsBadge.innerText = `${res.items.length} FILES SECURED`;
-        console.log(`[STORAGE_DEBUG] Found ${res.items.length} visuals. Rendering...`);
-
+        
         // Fetch URLs and inject into UI
         const urlPromises = res.items.map(itemRef => getDownloadURL(itemRef));
         const imageUrls = await Promise.all(urlPromises);
-        latestImageUrl = imageUrls[imageUrls.length - 1]; // Grab the newest capture
-
+        
+        // Sort by timestamp if possible, otherwise grab the last one
+        latestImageUrl = imageUrls[imageUrls.length - 1]; 
+        
         if (ui.stackImg1 && imageUrls[0]) ui.stackImg1.src = latestImageUrl;
         if (ui.stackImg2) ui.stackImg2.src = imageUrls[imageUrls.length - 2] || latestImageUrl;
         if (ui.stackImg3) ui.stackImg3.src = imageUrls[imageUrls.length - 3] || latestImageUrl;
-
+        
         if (ui.modalImageGrid) {
             ui.modalImageGrid.innerHTML = '';
             imageUrls.slice().reverse().forEach(url => {
@@ -449,30 +448,35 @@ async function fetchUnitOptics(unitId) {
         ui.opticsBadge.innerText = "UPLINK FAILED";
     }
 }
+
+
 // ==========================================
 // 7. AI VERIFICATION PIPELINE
 // ==========================================
 async function triggerAiVerification(soldierId, pitch, roll, gas) {
     if (!latestImageUrl) return;
     isAiAnalyzing = true;
+    
     if (ui.aiModal) ui.aiModal.classList.add('active');
     if (ui.aiImg) ui.aiImg.src = latestImageUrl;
     if (ui.aiTimestamp) ui.aiTimestamp.innerText = new Date().toLocaleTimeString();
     if (ui.aiHardware) ui.aiHardware.innerText = `MPU TILT OVERRIDE (Pitch: ${pitch}° | Roll: ${roll}°)`;
-
+    
     if (ui.aiClassification) {
         ui.aiClassification.innerText = "ANALYZING...";
         ui.aiClassification.className = "data-large text-neon blink";
     }
     if (ui.aiConfidence) ui.aiConfidence.innerText = "--%";
-
+    
     try {
         const response = await fetchWithTimeout("http://localhost:5000/verify_vision", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ soldier_id: soldierId, image_url: latestImageUrl })
         });
+        
         const aiData = await response.json();
+        
         if (ui.aiClassification) {
             ui.aiClassification.className = "data-large";
             ui.aiClassification.innerText = aiData.classification;
@@ -487,6 +491,7 @@ async function triggerAiVerification(soldierId, pitch, roll, gas) {
         }
     }
 }
+
 
 // ==========================================
 // 8. INTERACTIVE MODALS & EVENT HOOKS
@@ -511,20 +516,20 @@ if (ui.widgetOptics && ui.opticsModalOverlay && ui.opticsModalContent) {
 // Draggable Sonoma Window Loop
 if (ui.uavHeader) {
     let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0, animationFrameID = null;
-
+    
     ui.uavHeader.addEventListener("mousedown", (e) => {
         initialX = e.clientX - xOffset;
         initialY = e.clientY - yOffset;
         if (e.target === ui.uavHeader || e.target.classList.contains('window-title')) isDragging = true;
     });
-
+    
     document.addEventListener("mouseup", () => {
         initialX = currentX;
         initialY = currentY;
         isDragging = false;
         if (animationFrameID) { cancelAnimationFrame(animationFrameID); animationFrameID = null; }
     });
-
+    
     document.addEventListener("mousemove", (e) => {
         if (!isDragging) return;
         e.preventDefault();
@@ -539,7 +544,7 @@ if (ui.uavHeader) {
             });
         }
     });
-
+    
     ui.uavMinBtn.addEventListener('click', () => ui.uavWindow.classList.toggle('minimized'));
     ui.uavCloseBtn.addEventListener('click', () => ui.uavWindow.classList.add('closed'));
 }
@@ -551,6 +556,7 @@ if (ui.btnDeployServo) {
         btnText.innerText = "DROPPING...";
         ui.btnDeployServo.style.background = "#ffff00";
         ui.btnDeployServo.style.color = "#000";
+        
         try {
             await fetchWithTimeout(`http://192.168.137.68:82/servo?angle=90`);
             setTimeout(async () => {
@@ -576,48 +582,54 @@ if (ui.btnDeployServo) {
 }
 
 // System Lifecycles
-ui.selector.addEventListener('change', (e) => {
-    if (e.target.value) {
-        startTelemetryStream(e.target.value);
-        fetchUnitOptics(e.target.value);
-    }
-});
+if (ui.selector) {
+    ui.selector.addEventListener('change', (e) => {
+        if (e.target.value) {
+            startTelemetryStream(e.target.value);
+            fetchUnitOptics(e.target.value);
+        }
+    });
+}
 
-ui.btnDismiss.addEventListener('click', () => {
-    ui.aiModal.classList.remove('active');
-    setTimeout(() => { isAiAnalyzing = false; }, 15000);
-});
+if (ui.btnDismiss) {
+    ui.btnDismiss.addEventListener('click', () => {
+        ui.aiModal.classList.remove('active');
+        setTimeout(() => { isAiAnalyzing = false; }, 15000);
+    });
+}
 
-ui.logoutBtn.addEventListener('click', () => {
-    if (currentListener) currentListener();
-    localStorage.clear();
-    window.location.href = "../login.html";
-});
+if (ui.logoutBtn) {
+    ui.logoutBtn.addEventListener('click', () => {
+        if (currentListener) currentListener();
+        localStorage.clear();
+        window.location.href = "../login.html";
+    });
+}
 
 window.addEventListener('pagehide', () => {
     if (currentListener) currentListener();
 });
 
 // Boot Sequence
-populateUnitSelector();// ==========================================
-// THRESHOLD WATCHDOG & POPUP ENGINE
-// ==========================================
-// Define the tracker directly above the functions to guarantee scope access
-const activeAlerts = new Set();
+populateUnitSelector();
 
+
+// ==========================================
+// 9. THRESHOLD WATCHDOG & POPUP ENGINE
+// ==========================================
 function evaluateTacticalThresholds(soldierId, data) {
     if (!data) return;
-
+    
     // 1. Gas Threshold (> 300 PPM)
     if (data.environment && data.environment.gas_level > 300) {
         triggerSystemAlert(soldierId, "GAS_CRITICAL", `TOXIC ATMOSPHERE DETECTED. Gas levels at ${data.environment.gas_level} PPM. Immediate extraction advised.`);
     }
-
+    
     // 2. Kinematic Threshold (Pitch/Roll > 60 degrees)
     if (data.telemetry && (Math.abs(data.telemetry.pitch) > 60 || Math.abs(data.telemetry.roll) > 60)) {
         triggerSystemAlert(soldierId, "ATTITUDE_CRITICAL", `SEVERE KINEMATIC TRAUMA. Pitch: ${parseFloat(data.telemetry.pitch).toFixed(1)}° | Roll: ${parseFloat(data.telemetry.roll).toFixed(1)}°. Possible casualty or drone crash.`);
     }
-
+    
     // 3. Biometric Threshold (Heart Rate > 130 or < 50)
     let bpm = data.heart_rate || (data.biometrics ? data.biometrics.bpm : null);
     if (bpm) {
@@ -629,53 +641,48 @@ function evaluateTacticalThresholds(soldierId, data) {
 function triggerSystemAlert(soldierId, alertCode, message) {
     const alertId = `${soldierId}_${alertCode}`;
     
-    // Prevent duplicate popups if this specific alert is already on screen
     if (activeAlerts.has(alertId)) return;
     activeAlerts.add(alertId);
-
-    // Trigger aggressive red screen flash
+    
     document.body.classList.add('global-crisis-mode');
-
-    // Build the Toast HTML
+    
     const center = document.getElementById("alert-center");
-    if (!center) return; // Fail-safe in case the HTML is missing
-
+    if (!center) return; 
+    
     const toast = document.createElement("div");
     toast.className = "tactical-toast";
     toast.innerHTML = `
         <div class="toast-header">
-            <span style="animation: pulse 1s infinite;">⚠️</span> 
+            <span style="animation: pulse 1s infinite;">🔴</span> 
             [ CMD-${soldierId} ] ${alertCode.replace('_', ' ')}
         </div>
         <div class="toast-body">${message}</div>
         <div style="margin-top: 10px; font-size: 10px; color: #888; font-family: monospace;">CLICK TO ACKNOWLEDGE & DISMISS</div>
     `;
-
-    // Click to dismiss
+    
     toast.addEventListener("click", () => {
         toast.style.animation = "slideOutRight 0.4s cubic-bezier(0.8, 0.2, 0.2, 1) forwards";
         setTimeout(() => {
             toast.remove();
             activeAlerts.delete(alertId);
-            // If no alerts left, turn off the red screen bleed
             if (activeAlerts.size === 0) document.body.classList.remove('global-crisis-mode');
-        }, 400); // Wait for animation to finish
+        }, 400); 
     });
-
-    // Auto-dismiss after 15 seconds if ignored
+    
     setTimeout(() => {
         if (activeAlerts.has(alertId)) toast.click();
     }, 15000);
-
+    
     center.appendChild(toast);
 }
+
+
 // ==========================================
-// BLDC PROPULSION LINK (ESP32 UPLINK)
+// 10. BLDC PROPULSION LINK (ESP32 UPLINK)
 // ==========================================
 const btnArm = document.getElementById("btn-arm-motors");
 const throttleSlider = document.getElementById("throttle-slider");
 const throttleReadout = document.getElementById("throttle-readout");
-
 let isArmed = false;
 
 // 1. Arming sequence safety toggle
@@ -685,15 +692,19 @@ if (btnArm) {
         if (isArmed) {
             btnArm.className = "badge badge-online blink";
             btnArm.innerText = "MOTORS ARMED";
-            throttleSlider.disabled = false;
-            throttleSlider.classList.add("armed");
+            if(throttleSlider) {
+                throttleSlider.disabled = false;
+                throttleSlider.classList.add("armed");
+            }
         } else {
             // Instant Kill Switch
             btnArm.className = "badge badge-offline";
             btnArm.innerText = "SYSTEM DISARMED";
-            throttleSlider.disabled = true;
-            throttleSlider.classList.remove("armed");
-            throttleSlider.value = 1000;
+            if(throttleSlider) {
+                throttleSlider.disabled = true;
+                throttleSlider.classList.remove("armed");
+                throttleSlider.value = 1000;
+            }
             updateThrottleUI(1000);
             sendThrottleToFirebase(1000);
         }
@@ -707,7 +718,6 @@ if (throttleSlider) {
         const val = parseInt(e.target.value);
         updateThrottleUI(val);
         
-        // Only send to Firebase every 100ms
         if (!throttleTimeout) {
             throttleTimeout = setTimeout(() => {
                 sendThrottleToFirebase(val);
@@ -718,7 +728,6 @@ if (throttleSlider) {
 }
 
 function updateThrottleUI(usValue) {
-    // Convert 1000-2000 microseconds to a 0-100% display
     const percent = Math.floor(((usValue - 1000) / 1000) * 100);
     if (throttleReadout) {
         throttleReadout.innerText = `${percent}%`;
@@ -726,10 +735,7 @@ function updateThrottleUI(usValue) {
     }
 }
 
-import { set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
 function sendThrottleToFirebase(usValue) {
-    // Pushes the exact microsecond value to RTDB
     set(ref(db, 'uav_commands/throttle_us'), usValue)
         .catch(err => console.error("Propulsion Uplink Failed:", err));
 }
