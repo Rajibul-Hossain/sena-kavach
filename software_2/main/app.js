@@ -1,19 +1,11 @@
-/* ==========================================================================
-   SENA KAVACH // BATTLEFIELD TELEMETRY ENGINE
-   ARCHITECTURE: Full ES6 Modular Engine with Targeted Audio & Archiving
-   ========================================================================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { getStorage, ref as storageRef, listAll, getDownloadURL, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-// Session Authentication Guard
 if (localStorage.getItem("cmd_authenticated") !== "true") {
     localStorage.setItem("cmd_authenticated", "true");
 }
 
-// ==========================================
-// 1. CONFIGURATION & VENUE PRESENTATION LOCK
-// ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyD8VmRxwh6fiQ8msCKhwsAhfScRHaFeW04",
     authDomain: "sena-kavach.firebaseapp.com",
@@ -31,10 +23,8 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const storage = getStorage(app);
 
-// Global State
 window.currentSoldierId = null;
 
-// DOM Cache
 const ui = {
     selector: document.getElementById('unit-select'),
     logoutBtn: document.getElementById('btn-logout'),
@@ -108,9 +98,6 @@ let isAiAnalyzing = false;
 let latestImageUrl = null;
 const activeAlerts = new Set();
 
-// ==========================================
-// 2. DUAL-LEAFLET TACTICAL MAP ENGINE
-// ==========================================
 let miniMap = null, miniMarker = null;
 let expandedMap = null, expandedMarker = null;
 const esriSatelliteLayer = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -152,9 +139,6 @@ const loadLeafletMap = () => {
 };
 loadLeafletMap();
 
-// ==========================================
-// 3. NETWORK RESILIENCE HELPER
-// ==========================================
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 4000 } = options;
     const controller = new AbortController();
@@ -177,9 +161,6 @@ if (ui.esp32StreamImg) {
     });
 }
 
-// ==========================================
-// 4. UNIT DISCOVERY & ROUTING INITIALIZATION
-// ==========================================
 async function populateUnitSelector() {
     const soldiersRef = ref(db, 'active_soldiers');
     try {
@@ -222,10 +203,6 @@ function switchActiveSoldier(soldierId) {
     fetchUnitOptics(soldierId);
     initWebRTCSignaling(soldierId);
 }
-
-// ==========================================
-// 5. DATABASE: REALTIME TELEMETRY ENGINE
-// ==========================================
 function startTelemetryStream(soldierId) {
     if (currentListener) currentListener();
     const soldierRef = ref(db, 'active_soldiers/' + soldierId);
@@ -370,9 +347,6 @@ function startTelemetryStream(soldierId) {
     });
 }
 
-// ==========================================
-// 6. STORAGE: RETRIEVE OPTICAL ARCHIVE
-// ==========================================
 async function fetchUnitOptics(unitId) {
     if (!ui.opticsBadge) return;
     ui.opticsBadge.className = "badge badge-neutral";
@@ -417,12 +391,9 @@ async function fetchUnitOptics(unitId) {
     }
 }
 
-// ==========================================
-// 7. AI VERIFICATION PIPELINE
-// ==========================================
 async function triggerAiVerification(soldierId, pitch, roll, gas) {
     isAiAnalyzing = true;
-    const evidenceUrl = latestImageUrl || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=600&q=80";
+    const evidenceUrl = latestImageUrl || "https://media.istockphoto.com/photos/kneeling-wwii-soldier-praying-for-dead-buddy-war-casualties-picture-id517993300?k=20&m=517993300&s=612x612&w=0&h=fzQ6FBoduTv-T_cgZ1qgJYktwj5Guev0Byz_NhnnHdc=";
 
     if (ui.aiModal) ui.aiModal.classList.add('active');
     if (ui.aiImg) ui.aiImg.src = evidenceUrl;
@@ -466,9 +437,6 @@ async function triggerAiVerification(soldierId, pitch, roll, gas) {
     }
 }
 
-// ==========================================
-// 8. INTERACTIVE MODALS & EVENT HOOKS
-// ==========================================
 if (ui.widgetMap && ui.mapModalOverlay && ui.mapModalContent) {
     ui.widgetMap.addEventListener('click', (e) => {
         ui.mapModalContent.style.transformOrigin = `${e.clientX}px ${e.clientY}px`;
@@ -579,9 +547,6 @@ window.addEventListener('pagehide', () => {
 
 populateUnitSelector();
 
-// ==========================================
-// 9. THRESHOLD WATCHDOG & POPUP ENGINE
-// ==========================================
 function evaluateTacticalThresholds(soldierId, data) {
     if (!data) return;
     
@@ -634,10 +599,6 @@ function triggerSystemAlert(soldierId, alertCode, message) {
     setTimeout(() => { if (activeAlerts.has(alertId)) toast.click(); }, 15000);
     center.appendChild(toast);
 }
-
-// ==========================================
-// 10. BLDC PROPULSION LINK (ESP32 UPLINK)
-// ==========================================
 const btnArm = document.getElementById("btn-arm-motors");
 const throttleSlider = document.getElementById("throttle-slider");
 const throttleReadout = document.getElementById("throttle-readout");
@@ -695,14 +656,10 @@ function sendThrottleToFirebase(usValue) {
         .catch(err => console.error("Propulsion Uplink Failed:", err));
 }
 
-// ==========================================
-// 11. TARGETED WEBRTC RECEIVER & ARCHIVE HUB
-// ==========================================
 let peerConnection = null;
 let currentOfferSDP = null;
 let webrtcListenerUnsubscribe = null;
 
-// Archiving & Visualization
 let mediaRecorder;
 let audioChunks = [];
 let audioContext, analyser, dataArray, visualizerAnimationFrame;
@@ -765,11 +722,9 @@ async function handleIncomingOffer(offer, soldierId) {
             ui.voiceBadge.className = "badge badge-online blink";
             ui.voiceBadge.innerText = "VOICE LIVE";
         }
-        
-        // 2. Start HUD Visualizer
+        er
         startVisualizer(stream);
 
-        // 3. Start Secure Archiving
         audioChunks = [];
         mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
@@ -787,7 +742,7 @@ async function handleIncomingOffer(offer, soldierId) {
                 console.error("[STORAGE] Archive failed.", e);
             }
         };
-        mediaRecorder.start(1000); // Package chunks every 1 second
+        mediaRecorder.start(1000); 
     };
 
     peerConnection.onconnectionstatechange = () => {
@@ -838,13 +793,10 @@ function startVisualizer(stream) {
     }
     renderFrame();
 }
-
 function cleanupVoiceLink() {
-    // 1. Stop Recorder and trigger archive upload
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
     }
-    // 2. Tear down visualizer
     if (visualizerAnimationFrame) cancelAnimationFrame(visualizerAnimationFrame);
     if (voiceHud) voiceHud.classList.remove('active');
     if (voiceBars) voiceBars.forEach(bar => bar.style.height = '4px');
