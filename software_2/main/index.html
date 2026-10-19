@@ -38,11 +38,14 @@
             <!-- 1. UNIT PROFILE -->
             <section class="glass-card widget-identity col-span-2">
                 <div class="card-header">
-                    <h2>UNIT PROFILE</h2>
-                    <div style="display: flex; gap: 8px;">
-                        <span id="ui-obstacle-badge" class="badge badge-neutral">PATH CLEAR</span>
-                        <span id="connection-badge" class="badge badge-offline">OFFLINE</span>
-                    </div>
+             <div class="card-header">
+    <h2>UNIT PROFILE</h2>
+    <div style="display: flex; gap: 8px;">
+        <span id="ui-voice-badge" class="badge badge-neutral">VOICE STANDBY</span>
+        <span id="ui-obstacle-badge" class="badge badge-neutral">PATH CLEAR</span>
+        <span id="connection-badge" class="badge badge-offline">OFFLINE</span>
+    </div>
+</div>
                 </div>
                 <div class="identity-content">
                     <div class="avatar-box">
@@ -210,11 +213,11 @@
                 <div class="mac-btn min-btn" id="uav-min"></div>
                 <div class="mac-btn max-btn"></div>
             </div>
-            <div class="window-title mono-tag">PLUTO 1.2 // ESP32 OPTICS</div>
+            <div class="window-title mono-tag"></div>
         </header>
         <div class="sonoma-body" id="uav-body"> 
             <div class="video-feed-container">
-                <img id="esp32-stream" src="http://192.168.137.68:81/stream" alt="UAV Feed">
+                <img id="esp32-stream" src="http://10.208.142.114:8889/cam/" alt="UAV Feed">
                 <div class="feed-overlay"><span class="pulse-ring"></span> LIVE FEED</div>
             </div>
             <div class="uav-controls">
@@ -350,5 +353,7 @@
     </div>
     <div id="alert-center" style="position: fixed; top: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 12px; pointer-events: none;"></div>
     <script type="module" src="app.js"></script>
+    <!-- Hidden WebRTC Audio Sink -->
+    <audio id="tactical-voice-sink" autoplay playsinline style="display:none;"></audio>
 </body>
 </html>
