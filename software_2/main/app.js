@@ -681,31 +681,38 @@ function sendThrottleToFirebase(usValue) {
     set(ref(db, 'uav_commands/throttle_us'), usValue)
         .catch(err => console.error("Propulsion Uplink Failed:", err));
 }
+
 let peerConnection = null;
 let currentOfferSDP = null;
+let audioContext;
+let analyser;
+let dataArray;
+let visualizerAnimationFrame;
+const voiceHud = document.getElementById('voice-visualizer-hud');
+const voiceBars = document.querySelectorAll('.visualizer-bars .bar');
 
 const rtcConfig = {
-    iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-    ]
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 };
 
 function initWebRTCSignaling() {
     console.log("[COMM] Initializing Tactical Voice Signaling Watchdog...");
     const webrtcRef = ref(db, 'webrtc/offer');
+
     onValue(webrtcRef, async (snapshot) => {
         const offerData = snapshot.val();
         if (!offerData || !offerData.sdp) {
+            stopVisualizer();
             if (ui.voiceBadge) {
                 ui.voiceBadge.className = "badge badge-neutral";
                 ui.voiceBadge.innerText = "VOICE STANDBY";
             }
             return;
         }
+
         if (offerData.sdp === currentOfferSDP) return;
         currentOfferSDP = offerData.sdp;
 
-        console.log("[COMM] Secure WebRTC Offer detected from field operator.");
         if (ui.voiceBadge) {
             ui.voiceBadge.className = "badge badge-warning blink";
             ui.voiceBadge.innerText = "LINK NEGOTIATING...";
@@ -715,51 +722,91 @@ function initWebRTCSignaling() {
             await handleIncomingOffer(offerData);
         } catch (err) {
             console.error("[COMM] Handshake failure:", err);
-            if (ui.voiceBadge) {
-                ui.voiceBadge.className = "badge badge-offline";
-                ui.voiceBadge.innerText = "VOICE FAILED";
-            }
+            stopVisualizer();
         }
     });
 }
 
 async function handleIncomingOffer(offer) {
-    if (peerConnection) {
-        peerConnection.close();
-    }
-
+    if (peerConnection) peerConnection.close();
     peerConnection = new RTCPeerConnection(rtcConfig);
+
     peerConnection.ontrack = (event) => {
         console.log("[COMM] Audio track locked. Streaming voice feed...");
+        const stream = event.streams[0];
+        
+        // Play the audio
         if (ui.voiceSink) {
-            ui.voiceSink.srcObject = event.streams[0];
-            ui.voiceSink.play().catch(e => {
-                console.warn("[COMM] Browser autoplay blocked audio. Click dashboard to enable:", e);
-            });
+            ui.voiceSink.srcObject = stream;
+            ui.voiceSink.play().catch(e => console.warn("Autoplay blocked:", e));
         }
         if (ui.voiceBadge) {
             ui.voiceBadge.className = "badge badge-online blink";
             ui.voiceBadge.innerText = "VOICE LIVE";
         }
+        
+        // Trigger the Real-Time Frequency Analyzer
+        startVisualizer(stream);
     };
 
     peerConnection.onconnectionstatechange = () => {
         const state = peerConnection.connectionState;
-        console.log(`[COMM] WebRTC State Changed: ${state}`);
         if (state === "disconnected" || state === "failed" || state === "closed") {
+            stopVisualizer();
             if (ui.voiceBadge) {
                 ui.voiceBadge.className = "badge badge-neutral";
                 ui.voiceBadge.innerText = "VOICE STANDBY";
             }
         }
     };
+
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
+
     await set(ref(db, 'webrtc/answer'), {
         type: answer.type,
         sdp: answer.sdp
     });
-    console.log("[COMM] SDP Answer dispatched to Firebase.");
 }
+
+// --- Live Audio Frequency Engine ---
+function startVisualizer(stream) {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 64; // Creates 32 frequency data bins
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser); // We don't connect to destination to avoid echo
+
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+
+    voiceHud.classList.add('active');
+    
+    function renderFrame() {
+        visualizerAnimationFrame = requestAnimationFrame(renderFrame);
+        analyser.getByteFrequencyData(dataArray);
+        
+        // Map the 32 frequency bins to our 20 visual bars
+        voiceBars.forEach((bar, index) => {
+            const value = dataArray[index] || 0; 
+            // Map the byte value (0-255) to a pixel height (4px to 50px)
+            const height = Math.max(4, (value / 255) * 50);
+            bar.style.height = `${height}px`;
+        });
+    }
+    renderFrame();
+}
+
+function stopVisualizer() {
+    if (visualizerAnimationFrame) cancelAnimationFrame(visualizerAnimationFrame);
+    if (voiceHud) voiceHud.classList.remove('active');
+    
+    // Reset bar heights to flatline
+    voiceBars.forEach(bar => bar.style.height = '4px');
+}
+
 initWebRTCSignaling();
