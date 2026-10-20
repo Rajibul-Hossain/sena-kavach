@@ -752,3 +752,36 @@ body {
 .comms-header { display: flex; align-items: center; gap: 10px; }
 .visualizer-bars { display: flex; align-items: center; justify-content: center; gap: 5px; height: 48px; }
 .visualizer-bars .bar { width: 6px; background: var(--camo-neon); border-radius: 3px; height: 4px; box-shadow: 0 0 10px var(--camo-neon); will-change: height; }
+/* ==========================================
+   TACTICAL COMMAND POPUP PANEL
+   ========================================== */
+.comms-control-panel {
+    position: absolute;
+    bottom: 110%; /* Makes it rise from the HUD */
+    left: 50%;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+    background: rgba(10, 15, 10, 0.95);
+    border: 1px solid var(--camo-neon);
+    border-radius: 8px;
+    padding: 12px;
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(118, 185, 0, 0.2);
+}
+.comms-control-panel.active {
+    transform: translateX(-50%) translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+.panel-header { font-size: 10px; color: #888; letter-spacing: 1px; text-align: center; margin-bottom: 4px; border-bottom: 1px solid #333; padding-bottom: 4px; font-weight: bold; }
+.btn-panel { background: rgba(255,255,255,0.05); color: var(--camo-neon); border: 1px solid #333; padding: 8px; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: 0.2s; border-radius: 4px; font-weight: bold;}
+.btn-panel:hover { background: rgba(118, 185, 0, 0.1); border-color: var(--camo-neon); }
+.btn-panel.active-record { background: var(--alert-red); color: #fff; border-color: var(--alert-red); animation: blink 1s infinite; }
+.btn-panel.btn-danger { color: var(--alert-red); border-color: rgba(255,51,51,0.3); }
+.btn-panel.btn-danger:hover { background: rgba(255,51,51,0.2); border-color: var(--alert-red); }
+.panel-select { background: #000; color: var(--camo-neon); border: 1px solid #333; font-family: 'Space Mono', monospace; font-size: 11px; padding: 4px; outline: none; }

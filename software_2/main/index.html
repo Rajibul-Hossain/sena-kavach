@@ -215,14 +215,31 @@
                     </div>
                 </div>
             </div>
-
-            <!-- TACTICAL VOICE VISUALIZER HUD -->
+<!-- TACTICAL VOICE VISUALIZER HUD -->
             <div class="voice-comms-hud" id="voice-visualizer-hud">
+                
+                <!-- TACTICAL COMMAND POPUP PANEL -->
+                <div class="comms-control-panel" id="comms-control-panel">
+                    <div class="panel-header">COMMAND & ROUTING</div>
+                    <button class="btn-panel" id="btn-panel-record">⏺ INITIATE ARCHIVE LOG</button>
+                    <button class="btn-panel" id="btn-panel-mute">🔇 MUTE LOCAL OUTPUT</button>
+                    <div style="display:flex; gap: 5px; margin-top: 5px;">
+                        <select class="panel-select" id="relay-target-select" style="flex: 1;">
+                            <option value="101">CMD-101</option>
+                            <option value="102">CMD-102</option>
+                            <option value="103">CMD-103</option>
+                        </select>
+                        <button class="btn-panel" id="btn-panel-relay" style="flex: 1;">🔀 RELAY</button>
+                    </div>
+                    <button class="btn-panel btn-danger" id="btn-panel-terminate" style="margin-top: 5px;">❌ FORCE TERMINATE</button>
+                </div>
+
                 <div class="comms-header">
                     <span class="status-pulse"></span>
                     <span class="mono-label text-neon" style="margin-bottom: 0;">SECURE COMMS UPLINK ACTIVE</span>
                 </div>
-                <div class="visualizer-bars">
+                <!-- Make the bars clickable -->
+                <div class="visualizer-bars" id="voice-visualizer-trigger" style="cursor: pointer; padding: 5px 0;" title="Tap for Tactical Controls">
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -231,6 +248,13 @@
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                     <div class="bar"></div><div class="bar"></div>
                 </div>
+                <div style="font-size: 9px; color: #666; margin-top: -2px; text-align: center; pointer-events: none;">[ TAP FREQUENCY BARS FOR CONTROLS ]</div>
+            </div>
+            <!-- MANUAL AI OVERWATCH TRIGGER -->
+            <div id="ai-trigger-container" style="position: fixed; right: 25px; bottom: 100px; z-index: 9000;">
+                <button id="btn-manual-ai" class="btn-execute" style="font-family: 'Space Mono', monospace; font-size: 11px; padding: 12px 20px; background: rgba(10,15,10,0.8); border: 1px solid var(--camo-neon); color: var(--camo-neon); border-radius: 4px; cursor: pointer; transition: 0.3s; box-shadow: 0 0 15px rgba(118,185,0,0.2);">
+                    👁️ REQUEST AI SCAN
+                </button>
             </div>
         </main>
     </div>

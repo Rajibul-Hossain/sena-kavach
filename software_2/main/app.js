@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase, ref, onValue, get, set, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { getStorage, ref as sRef, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-
+import { uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 if (localStorage.getItem("cmd_auth") !== "true") localStorage.setItem("cmd_auth", "true");
 
 const cfg = {
@@ -212,40 +212,51 @@ if (ui.btnSrv) ui.btnSrv.onclick = async () => {
     try { await fetchT(`http://192.168.137.68:82/servo?angle=90`); setTimeout(async () => { await fetchT(`http://192.168.137.68:82/servo?angle=0`); b.innerText = "DEPLOYED"; ui.btnSrv.style.background = "var(--camo-neon)"; setTimeout(() => { b.innerText = "ACTUATE [90°]"; ui.btnSrv.style.background = ""; ui.btnSrv.style.color = ""; }, 3000); }, 1500); } 
     catch { b.innerText = "FAILED"; ui.btnSrv.style.background = "var(--alert-red)"; setTimeout(() => { b.innerText = "ACTUATE [90°]"; ui.btnSrv.style.background = ""; ui.btnSrv.style.color = ""; }, 3000); }
 };
-
 // ==========================================
-// TACTICAL VOICE COMMS (CLEAN & RELIABLE)
+// TACTICAL VOICE COMMS & COMMAND PANEL
 // ==========================================
 let rtc = null, currOff = null, rtcLis = null, audStrm = null, aCtx, aNly, dArr, vAF;
 let pendingOffer = null, pendingId = null;
 
+// Recording Globals
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+// UI Elements
+const ctrlPanel = $('comms-control-panel');
+const btnRec = $('btn-panel-record');
+const btnMute = $('btn-panel-mute');
+const btnRelay = $('btn-panel-relay');
+const relayTarget = $('relay-target-select');
+const btnTerminate = $('btn-panel-terminate');
+
+// --- TOGGLE PANEL ---
+const triggerArea = $('voice-visualizer-trigger');
+if (triggerArea) {
+    triggerArea.addEventListener('click', () => {
+        if (ctrlPanel) ctrlPanel.classList.toggle('active');
+    });
+}
+
 function initRTC(id) {
     if (rtcLis) { rtcLis(); stopRTC(); }
-    
-    // Listen for WebRTC offers pushed by Python
     rtcLis = onValue(ref(db, `active_soldiers/${id}/comms/offer`), sn => {
         let d = sn.val();
         if (!d || !d.sdp) { 
-            // Disconnect triggered by Python script teardown
             if (ui.callMod) ui.callMod.classList.remove('active');
             stopRTC(); 
             if (ui.vBadge) { ui.vBadge.className = "badge badge-neutral"; ui.vBadge.innerText = "VOICE STANDBY"; } 
             return; 
         }
-        
-        // Prevent duplicate processing
         if (d.sdp === currOff) return; 
-        currOff = d.sdp;
-        pendingOffer = d;
-        pendingId = id;
+        currOff = d.sdp; pendingOffer = d; pendingId = id;
         
-        // Ring the Commander via the Modal (Bypasses Mobile Autoplay Blocks)
         if (ui.callerId) ui.callerId.innerText = `CMD-${id} // FIELD MIC`;
         if (ui.callMod) ui.callMod.classList.add('active');
     });
 }
 
-// Accept Call Event
 if (ui.btnAcc) {
     ui.btnAcc.onclick = async () => {
         ui.callMod.classList.remove('active');
@@ -257,7 +268,6 @@ if (ui.btnAcc) {
     };
 }
 
-// Reject Call Event
 if (ui.btnRej) {
     ui.btnRej.onclick = () => {
         ui.callMod.classList.remove('active');
@@ -265,6 +275,7 @@ if (ui.btnRej) {
         pendingOffer = null;
     };
 }
+
 async function handleOff(o, id) {
     if (rtc) rtc.close(); 
     rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
@@ -277,26 +288,32 @@ async function handleOff(o, id) {
         }
         try { startViz(audStrm); } catch {}
         if (ui.vBadge) { ui.vBadge.className = "badge badge-online blink"; ui.vBadge.innerText = "VOICE LIVE"; }
+        
+        // Reset UI Buttons
+        if (btnRec) {
+            isRecording = false;
+            btnRec.innerText = "⏺ INITIATE ARCHIVE LOG";
+            btnRec.classList.remove('active-record');
+        }
+        if (btnMute && ui.vSink) {
+            ui.vSink.muted = false;
+            btnMute.innerText = "🔇 MUTE LOCAL OUTPUT";
+            btnMute.style.color = "var(--camo-neon)";
+        }
     };
     
     rtc.onconnectionstatechange = () => { 
         let s = rtc.connectionState; 
-        if (s === "disconnected" || s === "failed" || s === "closed") { 
-            stopRTC(); 
-            if (ui.vBadge) { ui.vBadge.className = "badge badge-neutral"; ui.vBadge.innerText = "VOICE STANDBY"; } 
-        } 
+        if (s === "disconnected" || s === "failed" || s === "closed") { stopRTC(); if (ui.vBadge) { ui.vBadge.className = "badge badge-neutral"; ui.vBadge.innerText = "VOICE STANDBY"; } } 
     };
     
     await rtc.setRemoteDescription(new RTCSessionDescription(o));
-    let a = await rtc.createAnswer(); 
-    await rtc.setLocalDescription(a);
+    let a = await rtc.createAnswer(); await rtc.setLocalDescription(a);
     
-    // CRITICAL FIX: Wait for the phone to gather its public IP from the STUN server
     if (rtc.iceGatheringState === "complete") {
         await set(ref(db, `active_soldiers/${id}/comms/answer`), { type: rtc.localDescription.type, sdp: rtc.localDescription.sdp });
     } else {
         rtc.onicecandidate = (event) => {
-            // When event.candidate is null, gathering is complete
             if (event.candidate === null) {
                 set(ref(db, `active_soldiers/${id}/comms/answer`), { type: rtc.localDescription.type, sdp: rtc.localDescription.sdp });
             }
@@ -304,22 +321,94 @@ async function handleOff(o, id) {
     }
 }
 
+// --- TACTICAL PANEL BUTTON LISTENERS ---
+
+// 1. RECORD LOGIC
+if (btnRec) {
+    btnRec.onclick = () => {
+        if (!audStrm) return;
+        if (!isRecording) {
+            audioChunks = [];
+            try { mediaRecorder = new MediaRecorder(audStrm, { mimeType: 'audio/webm' }); } catch { return; }
+            mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+            mediaRecorder.onstop = async () => {
+                if (!audioChunks.length) return;
+                try {
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await uploadBytes(sRef(st, `combat_logs/CMD-${window.currId || "101"}/voice_logs/intercept_${Date.now()}.webm`), blob);
+                    trigAlert(window.currId || "101", "INTEL_SECURED", "Voice intercept archived to Firebase Storage.");
+                } catch (e) { console.error("Upload failed", e); }
+            };
+            mediaRecorder.start(1000);
+            isRecording = true;
+            btnRec.innerText = "⏹ STOP & ARCHIVE LOG";
+            btnRec.classList.add('active-record');
+        } else {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+            isRecording = false;
+            btnRec.innerText = "✅ ARCHIVED TO CLOUD";
+            btnRec.classList.remove('active-record');
+            setTimeout(() => btnRec.innerText = "⏺ INITIATE ARCHIVE LOG", 3000);
+        }
+    };
+}
+
+// 2. MUTE LOGIC
+if (btnMute) {
+    btnMute.onclick = () => {
+        if (ui.vSink) {
+            ui.vSink.muted = !ui.vSink.muted;
+            if (ui.vSink.muted) {
+                btnMute.innerText = "🔊 UNMUTE LOCAL OUTPUT";
+                btnMute.style.color = "var(--alert-red)";
+            } else {
+                btnMute.innerText = "🔇 MUTE LOCAL OUTPUT";
+                btnMute.style.color = "var(--camo-neon)";
+            }
+        }
+    };
+}
+
+// 3. SIGNAL RELAY LOGIC
+if (btnRelay) {
+    btnRelay.onclick = () => {
+        const newTarget = relayTarget.value;
+        if (newTarget === (window.currId || "101")) return;
+        
+        // Sever current link cleanly
+        remove(ref(db, `active_soldiers/${window.currId || "101"}/comms`));
+        stopRTC();
+        
+        // Trigger UI change to new soldier
+        if (ui.sel) ui.sel.value = newTarget;
+        setUnit(newTarget);
+        
+        trigAlert(newTarget, "RELAY_ACTIVE", `RF Watchdog rerouted to CMD-${newTarget}.`);
+        if (ctrlPanel) ctrlPanel.classList.remove('active');
+    };
+}
+
+// 4. FORCE TERMINATE LOGIC
+if (btnTerminate) {
+    btnTerminate.onclick = () => {
+        remove(ref(db, `active_soldiers/${window.currId || "101"}/comms`));
+        stopRTC();
+        trigAlert(window.currId || "101", "UPLINK_SEVERED", "Commander forcibly terminated the connection.");
+        if (ctrlPanel) ctrlPanel.classList.remove('active');
+        if (ui.vBadge) { ui.vBadge.className = "badge badge-neutral"; ui.vBadge.innerText = "VOICE STANDBY"; }
+    };
+}
+
+// --- CORE UTILITIES ---
 function startViz(s) {
     if (!aCtx) aCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (aCtx.state === 'suspended') aCtx.resume();
-    
-    aNly = aCtx.createAnalyser(); 
-    aNly.fftSize = 64; 
-    aNly.smoothingTimeConstant = 0.8;
+    aNly = aCtx.createAnalyser(); aNly.fftSize = 64; aNly.smoothingTimeConstant = 0.8;
     aCtx.createMediaStreamSource(s).connect(aNly);
-    
     dArr = new Uint8Array(aNly.frequencyBinCount);
-    let h = $('voice-visualizer-hud'); 
-    if (h) h.classList.add('active');
-    
+    let h = $('voice-visualizer-hud'); if (h) h.classList.add('active');
     function rFrame() {
-        vAF = requestAnimationFrame(rFrame); 
-        aNly.getByteFrequencyData(dArr);
+        vAF = requestAnimationFrame(rFrame); aNly.getByteFrequencyData(dArr);
         let bs = document.querySelectorAll('.visualizer-bars .bar');
         if (bs) bs.forEach((b, i) => b.style.height = Math.max(4, ((dArr[i] || 0) / 255) * 48) + 'px');
     }
@@ -327,10 +416,11 @@ function startViz(s) {
 }
 
 function stopRTC() {
+    if (isRecording && mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
     if (vAF) cancelAnimationFrame(vAF);
     let h = $('voice-visualizer-hud'), bs = document.querySelectorAll('.visualizer-bars .bar');
     if (h) h.classList.remove('active'); 
     if (bs) bs.forEach(b => b.style.height = '4px');
-    audStrm = null; 
-    pendingOffer = null;
+    if (ctrlPanel) ctrlPanel.classList.remove('active');
+    audStrm = null; pendingOffer = null; isRecording = false;
 }
