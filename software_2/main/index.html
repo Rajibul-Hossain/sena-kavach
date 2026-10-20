@@ -201,7 +201,22 @@
                     </div>
                 </div>
             </section>
-  <!-- TACTICAL VOICE VISUALIZER HUD -->
+        <!-- HIDDEN AUDIO SINK -->
+            <audio id="tactical-voice-sink" autoplay></audio>
+
+            <!-- INCOMING TRANSMISSION MODAL -->
+            <div class="call-modal" id="incoming-call-modal">
+                <div class="call-box">
+                    <h2 class="text-neon blink" style="margin-bottom: 5px; font-size: 24px;">INCOMING TRANSMISSION</h2>
+                    <div class="mono-data" id="caller-id" style="font-size: 16px; margin-bottom: 25px; color: #ccc;">AWAITING UPLINK...</div>
+                    <div class="call-actions">
+                        <button class="btn-call accept" id="btn-accept-call">[ ACCEPT UPLINK ]</button>
+                        <button class="btn-call reject" id="btn-reject-call">[ REJECT ]</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TACTICAL VOICE VISUALIZER HUD -->
             <div class="voice-comms-hud" id="voice-visualizer-hud">
                 <div class="comms-header">
                     <span class="status-pulse"></span>

@@ -1,12 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { getStorage, ref as storageRef, listAll, getDownloadURL, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { getDatabase, ref, onValue, get, set, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { getStorage, ref as sRef, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-if (localStorage.getItem("cmd_authenticated") !== "true") {
-    localStorage.setItem("cmd_authenticated", "true");
-}
+if (localStorage.getItem("cmd_auth") !== "true") localStorage.setItem("cmd_auth", "true");
 
-const firebaseConfig = {
+const cfg = {
     apiKey: "AIzaSyD8VmRxwh6fiQ8msCKhwsAhfScRHaFeW04",
     authDomain: "sena-kavach.firebaseapp.com",
     databaseURL: "https://sena-kavach-default-rtdb.firebaseio.com",
@@ -16,790 +14,323 @@ const firebaseConfig = {
     appId: "1:417816652380:web:ba3e531724f32831c9d499"
 };
 
-const FALLBACK_LAT = 22.551600; 
-const FALLBACK_LNG = 88.337800;
-
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(cfg);
 const db = getDatabase(app);
-const storage = getStorage(app);
+const st = getStorage(app);
 
-window.currentSoldierId = null;
+window.currId = null;
+const DEF_LAT = 22.5516, DEF_LNG = 88.3378;
+const $ = id => document.getElementById(id);
 
 const ui = {
-    selector: document.getElementById('unit-select'),
-    logoutBtn: document.getElementById('btn-logout'),
-    
-    armyNo: document.getElementById('ui-army-no'),
-    badge: document.getElementById('connection-badge'),
-    obsBadge: document.getElementById('ui-obstacle-badge'),
-    
-    lat: document.getElementById('ui-lat'),
-    lng: document.getElementById('ui-lng'),
-    alt: document.getElementById('ui-alt'),
-    speed: document.getElementById('ui-speed'),
-    sats: document.getElementById('ui-sats'),
-    radarTarget: document.getElementById('radar-target'),
-    mapStatus: document.getElementById('map-status'),
-    
-    modalUnit: document.getElementById('modal-unit'),
-    modalLat: document.getElementById('modal-lat'),
-    modalLng: document.getElementById('modal-lng'),
-    modalAlt: document.getElementById('modal-alt'),
-    modalSpeed: document.getElementById('modal-speed'),
-    modalSats: document.getElementById('modal-sats'),
-    
-    bpm: document.getElementById('ui-bpm'),
-    barBpm: document.getElementById('bar-bpm'),
-    pitch: document.getElementById('ui-pitch'),
-    roll: document.getElementById('ui-roll'),
-    gasVal: document.getElementById('ui-gas-val'),
-    gasStatus: document.getElementById('ui-gas-status'),
-    barGas: document.getElementById('bar-gas'),
-    tempVal: document.getElementById('ui-temp-val'),
-    humVal: document.getElementById('ui-hum-val'),
-    
-    widgetOptics: document.getElementById('widget-optics'),
-    opticsBadge: document.getElementById('optics-badge'),
-    opticsModalOverlay: document.getElementById('optics-modal'),
-    opticsModalContent: document.getElementById('optics-modal-content'),
-    btnCloseOptics: document.getElementById('btn-close-optics'),
-    modalImageGrid: document.getElementById('modal-image-grid'),
-    stackImg1: document.getElementById('stack-img-1'),
-    stackImg2: document.getElementById('stack-img-2'),
-    stackImg3: document.getElementById('stack-img-3'),
-    
-    widgetMap: document.getElementById('widget-map'),
-    mapModalOverlay: document.getElementById('map-modal'),
-    mapModalContent: document.getElementById('map-modal-content'),
-    btnCloseMap: document.getElementById('btn-close-map'),
-    
-    aiModal: document.getElementById('ai-modal'),
-    aiTimestamp: document.getElementById('ai-timestamp'),
-    aiHardware: document.getElementById('ai-hardware'),
-    aiClassification: document.getElementById('ai-classification'),
-    aiConfidence: document.getElementById('ai-confidence'),
-    aiReasoning: document.getElementById('ai-reasoning'),
-    aiImg: document.getElementById('ai-evidence-img'),
-    btnDismiss: document.getElementById('btn-dismiss-ai'),
-    
-    uavWindow: document.getElementById('uav-window'),
-    uavHeader: document.getElementById('uav-header'),
-    uavMinBtn: document.getElementById('uav-min'),
-    uavCloseBtn: document.getElementById('uav-close'),
-    btnDeployServo: document.getElementById('btn-deploy-servo'),
-    esp32StreamImg: document.getElementById('esp32-stream'),
-
-    voiceBadge: document.getElementById('ui-voice-badge'),
-    voiceSink: document.getElementById('tactical-voice-sink')
+    sel: $('unit-select'), btnOut:$('btn-logout'), armyNo: $('ui-army-no'), badge:$('connection-badge'), 
+    obsBadge: $('ui-obstacle-badge'), lat: $('ui-lat'), lng:$('ui-lng'), alt: $('ui-alt'), spd:$('ui-speed'), 
+    sats: $('ui-sats'), radar:$('radar-target'), mapSt: $('map-status'), modUnit:$('modal-unit'), 
+    modLat: $('modal-lat'), modLng:$('modal-lng'), modAlt: $('modal-alt'), modSpd:$('modal-speed'), 
+    modSats: $('modal-sats'), bpm: $('ui-bpm'), barBpm:$('bar-bpm'), pitch: $('ui-pitch'), roll:$('ui-roll'), 
+    gasVal: $('ui-gas-val'), gasSt:$('ui-gas-status'), barGas: $('bar-gas'), tmpVal:$('ui-temp-val'), 
+    humVal: $('ui-hum-val'), wOpt:$('widget-optics'), optBadge: $('optics-badge'), optMod:$('optics-modal'), 
+    optContent: $('optics-modal-content'), btnCloseOpt: $('btn-close-optics'), imgGrid:$('modal-image-grid'), 
+    img1: $('stack-img-1'), img2:$('stack-img-2'), img3: $('stack-img-3'), wMap:$('widget-map'), 
+    mapMod: $('map-modal'), mapContent: $('map-modal-content'), btnCloseMap:$('btn-close-map'), 
+    aiMod: $('ai-modal'), aiTs:$('ai-timestamp'), aiHw: $('ai-hardware'), aiClass:$('ai-classification'), 
+    aiConf: $('ai-confidence'), aiRsn:$('ai-reasoning'), aiImg: $('ai-evidence-img'), btnDis:$('btn-dismiss-ai'), 
+    uavWin: $('uav-window'), uavHdr:$('uav-header'), uavMin: $('uav-min'), uavCls:$('uav-close'), 
+    btnSrv: $('btn-deploy-servo'), espCam: $('esp32-stream'), vBadge:$('ui-voice-badge'), 
+    vSink: $('tactical-voice-sink'), callMod: $('incoming-call-modal'), callerId:$('caller-id'),
+    btnAcc: $('btn-accept-call'), btnRej:$('btn-reject-call')
 };
 
-let currentListener = null;
-let isAiAnalyzing = false;
-let latestImageUrl = null;
-const activeAlerts = new Set();
+let curLis = null, isAI = false, lastImg = null, alerts = new Set();
+let map1 = null, mk1 = null, map2 = null, mk2 = null;
 
-let miniMap = null, miniMarker = null;
-let expandedMap = null, expandedMarker = null;
-const esriSatelliteLayer = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-
-window.initTacticalMap = () => {
+// --- MAP INIT ---
+window.initMap = () => {
     try {
-        const miniContainer = document.getElementById('tactical-map');
-        if (miniContainer) {
-            miniMap = L.map('tactical-map', { zoomControl: false, attributionControl: false }).setView([FALLBACK_LAT, FALLBACK_LNG], 17);
-            L.tileLayer(esriSatelliteLayer, { maxZoom: 19 }).addTo(miniMap);
-        }
-        const expContainer = document.getElementById('expanded-map');
-        if (expContainer) {
-            expandedMap = L.map('expanded-map', { zoomControl: true, attributionControl: false }).setView([FALLBACK_LAT, FALLBACK_LNG], 18);
-            L.tileLayer(esriSatelliteLayer, { maxZoom: 19 }).addTo(expandedMap);
-        }
-        const tacticalIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: `<div style="width:14px; height:14px; background:#ff3333; border:2px solid #fff; border-radius:50%; box-shadow: 0 0 12px #ff3333;"></div>`,
-            iconSize: [14, 14],
-            iconAnchor: [7, 7]
-        });
-        if (miniMap) miniMarker = L.marker([FALLBACK_LAT, FALLBACK_LNG], { icon: tacticalIcon }).addTo(miniMap);
-        if (expandedMap) expandedMarker = L.marker([FALLBACK_LAT, FALLBACK_LNG], { icon: tacticalIcon }).addTo(expandedMap);
-    } catch (e) {
-        console.warn("[LEAFLET] Initialization deferred:", e);
-    }
+        const sat = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+        const icn = L.divIcon({ className: 'custom-div-icon', html: `<div style="width:14px; height:14px; background:#ff3333; border:2px solid #fff; border-radius:50%; box-shadow: 0 0 12px #ff3333;"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+        if ($('tactical-map')) { map1 = L.map('tactical-map', { zoomControl: false, attributionControl: false }).setView([DEF_LAT, DEF_LNG], 17); L.tileLayer(sat).addTo(map1); mk1 = L.marker([DEF_LAT, DEF_LNG], { icon: icn }).addTo(map1); }
+        if ($('expanded-map')) { map2 = L.map('expanded-map', { zoomControl: true, attributionControl: false }).setView([DEF_LAT, DEF_LNG], 18); L.tileLayer(sat).addTo(map2); mk2 = L.marker([DEF_LAT, DEF_LNG], { icon: icn }).addTo(map2); }
+    } catch (e) {}
 };
 
-const loadLeafletMap = () => {
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(css);
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = () => window.initTacticalMap();
-    document.head.appendChild(script);
+(() => {
+    let c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(c);
+    let s = document.createElement('script'); s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; s.onload = window.initMap; document.head.appendChild(s);
+})();
+
+const fetchT = async (url, opts = { timeout: 4000 }) => {
+    const ctrl = new AbortController(); const id = setTimeout(() => ctrl.abort(), opts.timeout);
+    try { const res = await fetch(url, { ...opts, signal: ctrl.signal }); clearTimeout(id); return res; } 
+    catch (e) { clearTimeout(id); throw e; }
 };
-loadLeafletMap();
 
-async function fetchWithTimeout(resource, options = {}) {
-    const { timeout = 4000 } = options;
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+if (ui.espCam) ui.espCam.addEventListener('error', () => setTimeout(() => ui.espCam.src = "http://10.208.142.114:8889/cam/?" + Date.now(), 2000));
+
+// --- CORE TELEMETRY ---
+async function getUnits() {
     try {
-        const response = await fetch(resource, { ...options, signal: controller.signal });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        throw error;
-    }
+        const snap = await get(ref(db, 'active_soldiers'));
+        if (snap.exists()) {
+            ui.sel.innerHTML = '<option value="" disabled>SELECT SOLDIER</option>';
+            let f = null, d = snap.val();
+            for (let id in d) { if (!f) f = id; ui.sel.appendChild(new Option(`SOLDIER // ${id}`, id)); }
+            if (f) { ui.sel.value = f; setUnit(f); }
+        } else setUnit("101");
+    } catch { setUnit("101"); }
 }
 
-if (ui.esp32StreamImg) {
-    ui.esp32StreamImg.addEventListener('error', () => {
-        setTimeout(() => {
-            ui.esp32StreamImg.src = "http://10.208.142.114:8889/cam/?" + new Date().getTime();
-        }, 2000);
+function setUnit(id) {
+    window.currId = id;
+    set(ref(db, 'command_state/active_target'), id);
+    startTel(id); getOpt(id); initRTC(id);
+}
+
+function startTel(id) {
+    if (curLis) curLis();
+    let initLd = true;
+    curLis = onValue(ref(db, 'active_soldiers/' + id), sn => {
+        let d = sn.val();
+        if (d) {
+            evalThresh(id, d);
+            let uStr = d.army_no || `CMD-${id}`;
+            if (ui.armyNo) ui.armyNo.innerText = uStr; if (ui.modUnit) ui.modUnit.innerText = uStr;
+            if (ui.badge) { ui.badge.className = 'badge badge-online'; ui.badge.innerText = d.status || 'LINK SECURE'; }
+            if (ui.obsBadge && d.tactical) { ui.obsBadge.className = d.tactical.obstacle_detected ? 'badge badge-offline blink' : 'badge badge-neutral'; ui.obsBadge.innerText = d.tactical.obstacle_detected ? 'OBSTACLE DETECTED' : 'PATH CLEAR'; }
+            
+            let l = d.location || {}, lt = parseFloat(l.lat || l.latitude || 0), lg = parseFloat(l.lon || l.longitude || 0), a = l.altitude_m || 0, s = l.speed_kmh || 0, st = l.satellites || 0;
+            if (lt === 0 && lg === 0) { lt = DEF_LAT; lg = DEF_LNG; st = 12; if (ui.mapSt) { ui.mapSt.className = 'badge badge-warning blink'; ui.mapSt.innerText = 'GPS OVERRIDE'; } } 
+            else if (ui.mapSt) { ui.mapSt.className = 'badge badge-online'; ui.mapSt.innerText = 'GPS LOCK'; }
+
+            if (ui.lat) ui.lat.innerText = lt.toFixed(6); if (ui.lng) ui.lng.innerText = lg.toFixed(6);
+            if (ui.alt) ui.alt.innerText = a.toFixed(1) + ' M'; if (ui.spd) ui.spd.innerText = s.toFixed(1) + ' KM/H'; if (ui.sats) ui.sats.innerText = st;
+            if (ui.modLat) ui.modLat.innerText = lt.toFixed(6); if (ui.modLng) ui.modLng.innerText = lg.toFixed(6);
+            if (ui.modAlt) ui.modAlt.innerText = a.toFixed(1) + ' M'; if (ui.modSpd) ui.modSpd.innerText = s.toFixed(1) + ' KM/H'; if (ui.modSats) ui.modSats.innerText = st;
+
+            if (map1 && mk1) { map1.setView([lt, lg], 17); mk1.setLatLng([lt, lg]); }
+            if (map2 && mk2) { map2.setView([lt, lg], 18); mk2.setLatLng([lt, lg]); }
+            if (ui.radar) { ui.radar.style.opacity = '1'; ui.radar.style.top = `${Math.floor(Math.random() * 40) + 30}%`; ui.radar.style.left = `${Math.floor(Math.random() * 40) + 30}%`; }
+
+            let hr = d.heart_rate || (d.biometrics ? d.biometrics.bpm : 87);
+            if (ui.bpm) { ui.bpm.innerText = hr; ui.bpm.classList.toggle('value-critical-flash', hr < 50 || hr > 130); }
+            if (ui.barBpm) { ui.barBpm.style.width = `${Math.min((hr / 180) * 100, 100)}%`; ui.barBpm.style.background = (hr > 130 || hr < 50) ? "var(--alert-red)" : "var(--camo-neon)"; }
+
+            if (d.environment) {
+                let g = d.environment.gas_level || 0, t = d.environment.temperature_c || 0, hm = d.environment.humidity_rh || 0;
+                if (ui.tmpVal) ui.tmpVal.innerText = t.toFixed(1) + '°C'; if (ui.humVal) ui.humVal.innerText = hm.toFixed(1) + '%';
+                if (ui.gasVal) { ui.gasVal.innerText = g; ui.gasVal.classList.toggle('value-critical-flash', g > 300); }
+                if (ui.barGas) ui.barGas.style.width = `${Math.min((g / 1000) * 100, 100)}%`;
+                if (ui.gasSt) { ui.gasSt.className = g < 300 ? 'badge badge-online' : 'badge badge-offline blink'; ui.gasSt.innerText = g < 300 ? 'AIR SAFE' : 'TOXIC (WARNING)'; ui.barGas.className = g < 300 ? 'progress-fill' : 'progress-fill bg-danger'; }
+            }
+
+            if (d.telemetry) {
+                let p = parseFloat(d.telemetry.pitch || 0), r = parseFloat(d.telemetry.roll || 0);
+                if (ui.pitch) { ui.pitch.innerText = p.toFixed(1); ui.pitch.className = Math.abs(p) > 60 ? 'value-critical-flash' : 'text-neon'; }
+                if (ui.roll) { ui.roll.innerText = r.toFixed(1); ui.roll.className = Math.abs(r) > 60 ? 'value-critical-flash' : 'text-neon'; }
+                if (!initLd && (Math.abs(p) > 60 || Math.abs(r) > 60) && !isAI) trigAI(id, p, r, d.environment ? d.environment.gas_level : 0);
+            }
+        }
+        initLd = false;
     });
 }
 
-async function populateUnitSelector() {
-    const soldiersRef = ref(db, 'active_soldiers');
+// --- OPTICS & AI OVERWATCH ---
+async function getOpt(id) {
+    if (!ui.optBadge) return;
+    ui.optBadge.className = "badge badge-neutral"; ui.optBadge.innerText = "SCANNING...";
     try {
-        const snapshot = await get(soldiersRef);
-        if (snapshot.exists()) {
-            ui.selector.innerHTML = '<option value="" disabled>SELECT SOLDIER</option>';
-            const soldiers = snapshot.val();
-            let firstSoldierId = null;
-            for (const soldierId in soldiers) {
-                if (!firstSoldierId) firstSoldierId = soldierId;
-                const opt = document.createElement('option');
-                opt.value = soldierId;
-                opt.text = `SOLDIER // ${soldierId}`;
-                ui.selector.appendChild(opt);
-            }
-            if (firstSoldierId) {
-                ui.selector.value = firstSoldierId;
-                switchActiveSoldier(firstSoldierId);
-            }
-        } else {
-            fallbackUnitInitialization();
-        }
-    } catch (error) {
-        console.error("[FIREBASE RTDB] Connection issue. Engaging local fallback:", error);
-        fallbackUnitInitialization();
-    }
+        let res = await listAll(sRef(st, `combat_logs`));
+        if (!res.items.length) { ui.optBadge.className = "badge badge-offline"; ui.optBadge.innerText = "NO VISUALS"; lastImg = null; return; }
+        ui.optBadge.className = "badge badge-online"; ui.optBadge.innerText = `${res.items.length} FILES SECURED`;
+        let urls = await Promise.all(res.items.map(i => getDownloadURL(i)));
+        lastImg = urls[urls.length - 1];
+        if (ui.img1) ui.img1.src = lastImg; if (ui.img2) ui.img2.src = urls[urls.length - 2] || lastImg; if (ui.img3) ui.img3.src = urls[urls.length - 3] || lastImg;
+        if (ui.imgGrid) { ui.imgGrid.innerHTML = ''; urls.slice().reverse().forEach(u => { let d = document.createElement('div'); d.className = 'grid-img'; d.innerHTML = `<img src="${u}">`; ui.imgGrid.appendChild(d); }); }
+    } catch { ui.optBadge.className = "badge badge-offline"; ui.optBadge.innerText = "UPLINK FAILED"; }
 }
 
-function fallbackUnitInitialization() {
-    ui.selector.innerHTML = '<option value="101" selected>SOLDIER // 101 (FALLBACK)</option>';
-    switchActiveSoldier("101");
-}
-
-function switchActiveSoldier(soldierId) {
-    window.currentSoldierId = soldierId;
-    set(ref(db, 'command_state/active_target'), soldierId);
-    console.log(`[ROUTING] Global Command Target Set to: CMD-${soldierId}`);
-    
-    startTelemetryStream(soldierId);
-    fetchUnitOptics(soldierId);
-    initWebRTCSignaling(soldierId);
-}
-function startTelemetryStream(soldierId) {
-    if (currentListener) currentListener();
-    const soldierRef = ref(db, 'active_soldiers/' + soldierId);
-    
-    currentListener = onValue(soldierRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            evaluateTacticalThresholds(soldierId, data);
-            
-            const unitStr = data.army_no || `CMD-${soldierId}`;
-            if (ui.armyNo) ui.armyNo.innerText = unitStr;
-            if (ui.modalUnit) ui.modalUnit.innerText = unitStr;
-            
-            if (ui.badge) {
-                ui.badge.className = 'badge badge-online';
-                ui.badge.innerText = data.status || 'LINK SECURE';
-            }
-            if (ui.obsBadge && data.tactical) {
-                const obs = data.tactical.obstacle_detected || 0;
-                if (obs === 1) {
-                    ui.obsBadge.className = 'badge badge-offline blink';
-                    ui.obsBadge.innerText = 'OBSTACLE DETECTED';
-                } else {
-                    ui.obsBadge.className = 'badge badge-neutral';
-                    ui.obsBadge.innerText = 'PATH CLEAR';
-                }
-            }
-            
-            let lat = 0, lng = 0, alt = 0, speed = 0, sats = 0;
-            if (data.location) {
-                lat = data.location.latitude ?? data.location.lat ?? 0;
-                lng = data.location.longitude ?? data.location.lon ?? 0;
-                alt = data.location.altitude_m ?? 0;
-                speed = data.location.speed_kmh ?? 0;
-                sats = data.location.satellites ?? 0;
-            }
-            
-            if (parseFloat(lat) === 0 && parseFloat(lng) === 0) {
-                lat = FALLBACK_LAT; lng = FALLBACK_LNG; sats = 12;
-                if (ui.mapStatus) {
-                    ui.mapStatus.className = 'badge badge-warning blink';
-                    ui.mapStatus.innerText = 'GPS OVERRIDE: ACTIVE';
-                }
-            } else {
-                if (ui.mapStatus) {
-                    ui.mapStatus.className = 'badge badge-online';
-                    ui.mapStatus.innerText = 'GPS LOCK: SECURE';
-                }
-            }
-            
-            if (ui.lat) ui.lat.innerText = parseFloat(lat).toFixed(6);
-            if (ui.lng) ui.lng.innerText = parseFloat(lng).toFixed(6);
-            if (ui.alt) ui.alt.innerText = `${parseFloat(alt).toFixed(1)} M`;
-            if (ui.speed) ui.speed.innerText = `${parseFloat(speed).toFixed(1)} KM/H`;
-            if (ui.sats) ui.sats.innerText = sats;
-            
-            if (ui.modalLat) ui.modalLat.innerText = parseFloat(lat).toFixed(6);
-            if (ui.modalLng) ui.modalLng.innerText = parseFloat(lng).toFixed(6);
-            if (ui.modalAlt) ui.modalAlt.innerText = `${parseFloat(alt).toFixed(1)} M`;
-            if (ui.modalSpeed) ui.modalSpeed.innerText = `${parseFloat(speed).toFixed(1)} KM/H`;
-            if (ui.modalSats) ui.modalSats.innerText = sats;
-            
-            if (miniMap && miniMarker) {
-                miniMap.setView([lat, lng], 17);
-                miniMarker.setLatLng([lat, lng]);
-            }
-            if (expandedMap && expandedMarker) {
-                expandedMap.setView([lat, lng], 18);
-                expandedMarker.setLatLng([lat, lng]);
-            }
-            if (ui.radarTarget) {
-                ui.radarTarget.style.opacity = '1';
-                ui.radarTarget.style.top = `${Math.floor(Math.random() * 40) + 30}%`;
-                ui.radarTarget.style.left = `${Math.floor(Math.random() * 40) + 30}%`;
-            }
-            
-            const bpmVal = data.heart_rate || (data.biometrics ? data.biometrics.bpm : 87);
-            if (ui.bpm) {
-                ui.bpm.innerText = bpmVal;
-                if (bpmVal < 50 || bpmVal > 130) ui.bpm.classList.add('value-critical-flash');
-                else ui.bpm.classList.remove('value-critical-flash');
-            }
-            if (ui.barBpm) {
-                ui.barBpm.style.width = `${Math.min((bpmVal / 180) * 100, 100)}%`;
-                ui.barBpm.style.background = (bpmVal > 130 || bpmVal < 50) ? "var(--alert-red)" : "var(--camo-neon)";
-            }
-            
-            if (data.environment) {
-                const gasPpm = data.environment.gas_level || 0;
-                const tempC = data.environment.temperature_c || 0;
-                const humRh = data.environment.humidity_rh || 0;
-                
-                if (ui.tempVal) ui.tempVal.innerText = `${parseFloat(tempC).toFixed(1)}°C`;
-                if (ui.humVal) ui.humVal.innerText = `${parseFloat(humRh).toFixed(1)}%`;
-                
-                if (ui.gasVal) {
-                    ui.gasVal.innerText = gasPpm;
-                    if (gasPpm > 300) ui.gasVal.classList.add('value-critical-flash');
-                    else ui.gasVal.classList.remove('value-critical-flash');
-                }
-                if (ui.barGas) ui.barGas.style.width = `${Math.min((gasPpm / 1000) * 100, 100)}%`;
-                
-                if (ui.gasStatus) {
-                    if (gasPpm < 300) {
-                        ui.gasStatus.className = 'badge badge-online';
-                        ui.gasStatus.innerText = 'AIR SAFE';
-                        ui.barGas.className = 'progress-fill';
-                    } else {
-                        ui.gasStatus.className = 'badge badge-offline blink';
-                        ui.gasStatus.innerText = 'TOXIC (WARNING)';
-                        ui.barGas.className = 'progress-fill bg-danger';
-                    }
-                }
-            }
-            
-            if (data.telemetry) {
-                const pitch = parseFloat(data.telemetry.pitch || 0);
-                const roll = parseFloat(data.telemetry.roll || 0);
-                const gas = data.environment ? data.environment.gas_level : 0;
-                
-                if (ui.pitch) {
-                    ui.pitch.innerText = pitch.toFixed(1);
-                    if (Math.abs(pitch) > 60) ui.pitch.classList.add('value-critical-flash');
-                    else {
-                        ui.pitch.classList.remove('value-critical-flash');
-                        ui.pitch.className = 'text-neon';
-                    }
-                }
-                if (ui.roll) {
-                    ui.roll.innerText = roll.toFixed(1);
-                    if (Math.abs(roll) > 60) ui.roll.classList.add('value-critical-flash');
-                    else {
-                        ui.roll.classList.remove('value-critical-flash');
-                        ui.roll.className = 'text-neon';
-                    }
-                }
-                if ((Math.abs(pitch) > 60 || Math.abs(roll) > 60) && !isAiAnalyzing) {
-                    triggerAiVerification(soldierId, pitch, roll, gas);
-                }
-            }
-        }
-    });
-}
-
-async function fetchUnitOptics(unitId) {
-    if (!ui.opticsBadge) return;
-    ui.opticsBadge.className = "badge badge-neutral";
-    ui.opticsBadge.innerText = "SCANNING ARCHIVE...";
-    
-    const cleanId = String(unitId).replace(/^CMD-/i, "");
+async function trigAI(id, p, r, g) {
+    isAI = true; let u = lastImg || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=600&q=80";
+    if (ui.aiMod) ui.aiMod.classList.add('active'); if (ui.aiImg) ui.aiImg.src = u;
+    if (ui.aiTs) ui.aiTs.innerText = new Date().toLocaleTimeString();
+    if (ui.aiHw) ui.aiHw.innerText = `TILT (P: ${p}° | R: ${r}°)`;
+    if (ui.aiClass) { ui.aiClass.innerText = "ANALYZING..."; ui.aiClass.className = "data-large text-neon blink"; }
     try {
-        let folderReference = storageRef(storage, `combat_logs`);
-        let res = await listAll(folderReference);
-        
-        if (res.items.length === 0) {
-            ui.opticsBadge.className = "badge badge-offline";
-            ui.opticsBadge.innerText = "NO VISUALS";
-            latestImageUrl = null;
-            return;
-        }
-        
-        ui.opticsBadge.className = "badge badge-online";
-        ui.opticsBadge.innerText = `${res.items.length} FILES SECURED`;
-        
-        const urlPromises = res.items.map(itemRef => getDownloadURL(itemRef));
-        const imageUrls = await Promise.all(urlPromises);
-        
-        latestImageUrl = imageUrls[imageUrls.length - 1];  
-        
-        if (ui.stackImg1 && imageUrls[0]) ui.stackImg1.src = latestImageUrl;
-        if (ui.stackImg2) ui.stackImg2.src = imageUrls[imageUrls.length - 2] || latestImageUrl;
-        if (ui.stackImg3) ui.stackImg3.src = imageUrls[imageUrls.length - 3] || latestImageUrl;
-        
-        if (ui.modalImageGrid) {
-            ui.modalImageGrid.innerHTML = '';
-            imageUrls.slice().reverse().forEach(url => {
-                const imgDiv = document.createElement('div');
-                imgDiv.className = 'grid-img';
-                imgDiv.innerHTML = `<img src="${url}" alt="Tactical Evidence">`;
-                ui.modalImageGrid.appendChild(imgDiv);
-            });
-        }
-    } catch (error) {
-        ui.opticsBadge.className = "badge badge-offline";
-        ui.opticsBadge.innerText = "UPLINK FAILED";
+        const res = await fetchT("http://127.0.0.1:5000/verify_vision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ soldier_id: id, image_url: u, pitch: p, roll: r }) });
+        if (!res.ok) throw new Error();
+        const d = await res.json();
+        if (ui.aiClass) { ui.aiClass.className = "data-large"; ui.aiClass.innerText = d.classification; ui.aiClass.style.color = d.classification.includes("NORMAL") ? "var(--camo-neon)" : "var(--alert-red)"; }
+        if (ui.aiConf) ui.aiConf.innerText = d.confidence_score; if (ui.aiRsn) ui.aiRsn.innerText = d.reasoning;
+    } catch {
+        if (ui.aiClass) { ui.aiClass.className = "data-large"; ui.aiClass.innerText = "SIMULATED OVERWATCH"; ui.aiClass.style.color = "var(--camo-neon)"; }
+        if (ui.aiConf) ui.aiConf.innerText = "94.2%"; if (ui.aiRsn) ui.aiRsn.innerText = "Offline heuristic evaluation: Postural telemetry confirms acute soldier tilt.";
     }
 }
 
-async function triggerAiVerification(soldierId, pitch, roll, gas) {
-    isAiAnalyzing = true;
-    const evidenceUrl = latestImageUrl || "https://media.istockphoto.com/photos/kneeling-wwii-soldier-praying-for-dead-buddy-war-casualties-picture-id517993300?k=20&m=517993300&s=612x612&w=0&h=fzQ6FBoduTv-T_cgZ1qgJYktwj5Guev0Byz_NhnnHdc=";
+function evalThresh(id, d) {
+    if (!d) return;
+    if (d.environment && d.environment.gas_level > 300) trigAlert(id, "GAS_CRITICAL", `TOXIC ATMOSPHERE: ${d.environment.gas_level} PPM.`);
+    if (d.telemetry && (Math.abs(d.telemetry.pitch) > 60 || Math.abs(d.telemetry.roll) > 60)) trigAlert(id, "ATTITUDE_CRITICAL", `KINEMATIC TRAUMA. P: ${parseFloat(d.telemetry.pitch).toFixed(1)}° | R: ${parseFloat(d.telemetry.roll).toFixed(1)}°.`);
+    let hr = d.heart_rate || (d.biometrics ? d.biometrics.bpm : null);
+    if (hr) { if (hr > 130) trigAlert(id, "TACHYCARDIA", `CARDIAC STRESS: ${hr} BPM.`); if (hr < 50 && hr > 0) trigAlert(id, "BRADYCARDIA", `CRITICAL VITALS: ${hr} BPM.`); }
+}
 
-    if (ui.aiModal) ui.aiModal.classList.add('active');
-    if (ui.aiImg) ui.aiImg.src = evidenceUrl;
-    if (ui.aiTimestamp) ui.aiTimestamp.innerText = new Date().toLocaleTimeString();
-    if (ui.aiHardware) ui.aiHardware.innerText = `MPU TILT OVERRIDE (Pitch: ${pitch}° | Roll: ${roll}°)`;
+function trigAlert(id, c, m) {
+    let aid = `${id}_${c}`; if (alerts.has(aid)) return; alerts.add(aid); document.body.classList.add('global-crisis-mode');
+    let ctr = $('alert-center'); if (!ctr) return;
+    let t = document.createElement("div"); t.className = "tactical-toast";
+    t.innerHTML = `<div class="toast-header"><span style="animation:pulse 1s infinite">🔴</span> [ CMD-${id} ] ${c.replace('_', ' ')}</div><div class="toast-body">${m}</div><div style="margin-top:10px;font-size:10px;color:#888;">CLICK TO DISMISS</div>`;
+    t.onclick = () => { t.style.animation = "slideOutRight 0.4s forwards"; setTimeout(() => { t.remove(); alerts.delete(aid); if (!alerts.size) document.body.classList.remove('global-crisis-mode'); }, 400); };
+    setTimeout(() => { if (alerts.has(aid)) t.click(); }, 15000); ctr.appendChild(t);
+}
 
-    if (ui.aiClassification) {
-        ui.aiClassification.innerText = "ANALYZING...";
-        ui.aiClassification.className = "data-large text-neon blink";
-    }
-    if (ui.aiConfidence) ui.aiConfidence.innerText = "--%";
-    if (ui.aiReasoning) ui.aiReasoning.innerText = "Transmitting telemetry to Neural Engine...";
+// --- UI EVENT LISTENERS ---
+if (ui.wMap) { ui.wMap.onclick = e => { ui.mapContent.style.transformOrigin = `${e.clientX}px ${e.clientY}px`; ui.mapMod.classList.add('active'); setTimeout(() => { if (map2) map2.invalidateSize(); }, 300); }; ui.btnCloseMap.onclick = () => ui.mapMod.classList.remove('active'); }
+if (ui.wOpt) { ui.wOpt.onclick = e => { ui.optContent.style.transformOrigin = `${e.clientX}px ${e.clientY}px`; ui.optMod.classList.add('active'); }; ui.btnCloseOpt.onclick = () => ui.optMod.classList.remove('active'); }
+if (ui.uavHdr) {
+    let dg = false, cx, cy, ix, iy, xo = 0, yo = 0, af = null;
+    ui.uavHdr.onmousedown = e => { ix = e.clientX - xo; iy = e.clientY - yo; if (e.target === ui.uavHdr || e.target.classList.contains('window-title')) dg = true; };
+    document.addEventListener("mouseup", () => { ix = cx; iy = cy; dg = false; if (af) { cancelAnimationFrame(af); af = null; } });
+    document.addEventListener("mousemove", e => { if (!dg) return; e.preventDefault(); cx = e.clientX - ix; cy = e.clientY - iy; xo = cx; yo = cy; if (!af) af = requestAnimationFrame(() => { ui.uavWin.style.transform = `translate3d(${cx}px, ${cy}px, 0)`; af = null; }); });
+    ui.uavMin.onclick = () => ui.uavWin.classList.toggle('minimized'); ui.uavCls.onclick = () => ui.uavWin.classList.add('closed');
+}
+if (ui.sel) ui.sel.onchange = e => { if (e.target.value) setUnit(e.target.value); };
+if (ui.btnDis) ui.btnDis.onclick = () => { ui.aiMod.classList.remove('active'); setTimeout(() => isAI = false, 15000); };
+if (ui.btnOut) ui.btnOut.onclick = () => { if (curLis) curLis(); localStorage.clear(); window.location.href = "../login.html"; };
+window.onpagehide = () => { if (curLis) curLis(); };
+getUnits();
 
-    try {
-        const response = await fetchWithTimeout("http://127.0.0.1:5000/verify_vision", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ soldier_id: soldierId, image_url: evidenceUrl }),
-            timeout: 6000
-        });
+// --- UAV THROTTLE & SERVO ---
+const bArm = $("btn-arm-motors"), tSld = $("throttle-slider"), tRd = $("throttle-readout");
+let arm = false, tTo = null;
+if (bArm) bArm.onclick = () => { arm = !arm; bArm.className = arm ? "badge badge-online blink" : "badge badge-offline"; bArm.innerText = arm ? "MOTORS ARMED" : "SYSTEM DISARMED"; if (tSld) { tSld.disabled = !arm; tSld.classList.toggle("armed", arm); if (!arm) { tSld.value = 1000; updThr(1000); sndThr(1000); } } };
+if (tSld) tSld.oninput = e => { let v = parseInt(e.target.value); updThr(v); if (!tTo) tTo = setTimeout(() => { sndThr(v); tTo = null; }, 100); };
+function updThr(v) { let p = Math.floor(((v - 1000) / 1000) * 100); if (tRd) { tRd.innerText = `${p}%`; tRd.className = p > 50 ? "mono-data text-red" : "mono-data text-neon"; } }
+function sndThr(v) { set(ref(db, 'uav_commands/throttle_us'), v).catch(() => {}); }
+if (ui.btnSrv) ui.btnSrv.onclick = async () => {
+    let b = ui.btnSrv.querySelector('.btn-text'); b.innerText = "DROPPING..."; ui.btnSrv.style.background = "#ff0"; ui.btnSrv.style.color = "#000";
+    try { await fetchT(`http://192.168.137.68:82/servo?angle=90`); setTimeout(async () => { await fetchT(`http://192.168.137.68:82/servo?angle=0`); b.innerText = "DEPLOYED"; ui.btnSrv.style.background = "var(--camo-neon)"; setTimeout(() => { b.innerText = "ACTUATE [90°]"; ui.btnSrv.style.background = ""; ui.btnSrv.style.color = ""; }, 3000); }, 1500); } 
+    catch { b.innerText = "FAILED"; ui.btnSrv.style.background = "var(--alert-red)"; setTimeout(() => { b.innerText = "ACTUATE [90°]"; ui.btnSrv.style.background = ""; ui.btnSrv.style.color = ""; }, 3000); }
+};
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+// ==========================================
+// TACTICAL VOICE COMMS (CLEAN & RELIABLE)
+// ==========================================
+let rtc = null, currOff = null, rtcLis = null, audStrm = null, aCtx, aNly, dArr, vAF;
+let pendingOffer = null, pendingId = null;
 
-        const aiData = await response.json();
-
-        if (ui.aiClassification) {
-            ui.aiClassification.className = "data-large";
-            ui.aiClassification.innerText = aiData.classification;
-            ui.aiClassification.style.color = aiData.classification.includes("NORMAL") ? "var(--camo-neon)" : "var(--alert-red)";
+function initRTC(id) {
+    if (rtcLis) { rtcLis(); stopRTC(); }
+    
+    // Listen for WebRTC offers pushed by Python
+    rtcLis = onValue(ref(db, `active_soldiers/${id}/comms/offer`), sn => {
+        let d = sn.val();
+        if (!d || !d.sdp) { 
+            // Disconnect triggered by Python script teardown
+            if (ui.callMod) ui.callMod.classList.remove('active');
+            stopRTC(); 
+            if (ui.vBadge) { ui.vBadge.className = "badge badge-neutral"; ui.vBadge.innerText = "VOICE STANDBY"; } 
+            return; 
         }
-        if (ui.aiConfidence) ui.aiConfidence.innerText = aiData.confidence_score;
-        if (ui.aiReasoning) ui.aiReasoning.innerText = aiData.reasoning;
-    } catch (error) {
-        if (ui.aiClassification) {
-            ui.aiClassification.className = "data-large";
-            ui.aiClassification.innerText = "SIMULATED OVERWATCH";
-            ui.aiClassification.style.color = "var(--camo-neon)";
-        }
-        if (ui.aiConfidence) ui.aiConfidence.innerText = "94.2%";
-        if (ui.aiReasoning) ui.aiReasoning.innerText = "Offline heuristic evaluation: Postural telemetry confirms acute soldier tilt. Zero mass environmental debris detected.";
-    }
-}
-
-if (ui.widgetMap && ui.mapModalOverlay && ui.mapModalContent) {
-    ui.widgetMap.addEventListener('click', (e) => {
-        ui.mapModalContent.style.transformOrigin = `${e.clientX}px ${e.clientY}px`;
-        ui.mapModalOverlay.classList.add('active');
-        setTimeout(() => { if (expandedMap) expandedMap.invalidateSize(); }, 300);
-    });
-    ui.btnCloseMap.addEventListener('click', () => ui.mapModalOverlay.classList.remove('active'));
-}
-
-if (ui.widgetOptics && ui.opticsModalOverlay && ui.opticsModalContent) {
-    ui.widgetOptics.addEventListener('click', (e) => {
-        ui.opticsModalContent.style.transformOrigin = `${e.clientX}px ${e.clientY}px`;
-        ui.opticsModalOverlay.classList.add('active');
-    });
-    ui.btnCloseOptics.addEventListener('click', () => ui.opticsModalOverlay.classList.remove('active'));
-}
-
-if (ui.uavHeader) {
-    let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0, animationFrameID = null;
-    
-    ui.uavHeader.addEventListener("mousedown", (e) => {
-        initialX = e.clientX - xOffset;
-        initialY = e.clientY - yOffset;
-        if (e.target === ui.uavHeader || e.target.classList.contains('window-title')) isDragging = true;
-    });
-    
-    document.addEventListener("mouseup", () => {
-        initialX = currentX;
-        initialY = currentY;
-        isDragging = false;
-        if (animationFrameID) { cancelAnimationFrame(animationFrameID); animationFrameID = null; }
-    });
-    
-    document.addEventListener("mousemove", (e) => {
-        if (!isDragging) return;
-        e.preventDefault();
-        currentX = e.clientX - initialX;
-        currentY = e.clientY - initialY;
-        xOffset = currentX;
-        yOffset = currentY;
-        if (!animationFrameID) {
-            animationFrameID = requestAnimationFrame(() => {
-                ui.uavWindow.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-                animationFrameID = null;
-            });
-        }
-    });
-    
-    ui.uavMinBtn.addEventListener('click', () => ui.uavWindow.classList.toggle('minimized'));
-    ui.uavCloseBtn.addEventListener('click', () => ui.uavWindow.classList.add('closed'));
-}
-
-if (ui.btnDeployServo) {
-    ui.btnDeployServo.addEventListener('click', async () => {
-        const btnText = ui.btnDeployServo.querySelector('.btn-text');
-        btnText.innerText = "DROPPING...";
-        ui.btnDeployServo.style.background = "#ffff00";
-        ui.btnDeployServo.style.color = "#000";
         
-        try {
-            await fetchWithTimeout(`http://192.168.137.68:82/servo?angle=90`);
-            setTimeout(async () => {
-                await fetchWithTimeout(`http://192.168.137.68:82/servo?angle=0`);
-                btnText.innerText = "DEPLOYED";
-                ui.btnDeployServo.style.background = "var(--camo-neon)";
-                setTimeout(() => {
-                    btnText.innerText = "ACTUATE SERVO [90°]";
-                    ui.btnDeployServo.style.background = "";
-                    ui.btnDeployServo.style.color = "";
-                }, 3000);
-            }, 1500);
-        } catch (e) {
-            btnText.innerText = "FAILED";
-            ui.btnDeployServo.style.background = "var(--alert-red)";
-            setTimeout(() => {
-                btnText.innerText = "ACTUATE SERVO [90°]";
-                ui.btnDeployServo.style.background = "";
-                ui.btnDeployServo.style.color = "";
-            }, 3000);
-        }
-    });
-}
-
-if (ui.selector) {
-    ui.selector.addEventListener('change', (e) => {
-        if (e.target.value) switchActiveSoldier(e.target.value);
-    });
-}
-
-if (ui.btnDismiss) {
-    ui.btnDismiss.addEventListener('click', () => {
-        ui.aiModal.classList.remove('active');
-        setTimeout(() => { isAiAnalyzing = false; }, 15000);
-    });
-}
-
-if (ui.logoutBtn) {
-    ui.logoutBtn.addEventListener('click', () => {
-        if (currentListener) currentListener();
-        localStorage.clear();
-        window.location.href = "../login.html";
-    });
-}
-
-window.addEventListener('pagehide', () => {
-    if (currentListener) currentListener();
-});
-
-populateUnitSelector();
-
-function evaluateTacticalThresholds(soldierId, data) {
-    if (!data) return;
-    
-    if (data.environment && data.environment.gas_level > 300) {
-        triggerSystemAlert(soldierId, "GAS_CRITICAL", `TOXIC ATMOSPHERE DETECTED. Gas levels at ${data.environment.gas_level} PPM. Immediate extraction advised.`);
-    }
-    
-    if (data.telemetry && (Math.abs(data.telemetry.pitch) > 60 || Math.abs(data.telemetry.roll) > 60)) {
-        triggerSystemAlert(soldierId, "ATTITUDE_CRITICAL", `SEVERE KINEMATIC TRAUMA. Pitch: ${parseFloat(data.telemetry.pitch).toFixed(1)}° | Roll: ${parseFloat(data.telemetry.roll).toFixed(1)}°. Possible casualty or drone crash.`);
-    }
-    
-    let bpm = data.heart_rate || (data.biometrics ? data.biometrics.bpm : null);
-    if (bpm) {
-        if (bpm > 130) triggerSystemAlert(soldierId, "BPM_TACHYCARDIA", `ACUTE CARDIAC STRESS. Heart rate sustained at ${bpm} BPM.`);
-        if (bpm < 50 && bpm > 0) triggerSystemAlert(soldierId, "BPM_BRADYCARDIA", `CRITICAL VITALS. Heart rate dropped to ${bpm} BPM. Possible shock.`);
-    }
-}
-
-function triggerSystemAlert(soldierId, alertCode, message) {
-    const alertId = `${soldierId}_${alertCode}`;
-    
-    if (activeAlerts.has(alertId)) return;
-    activeAlerts.add(alertId);
-    
-    document.body.classList.add('global-crisis-mode');
-    
-    const center = document.getElementById("alert-center");
-    if (!center) return;
-    
-    const toast = document.createElement("div");
-    toast.className = "tactical-toast";
-    toast.innerHTML = `
-        <div class="toast-header">
-            <span style="animation: pulse 1s infinite;">🔴</span> 
-            [ CMD-${soldierId} ] ${alertCode.replace('_', ' ')}
-        </div>
-        <div class="toast-body">${message}</div>
-        <div style="margin-top: 10px; font-size: 10px; color: #888; font-family: monospace;">CLICK TO ACKNOWLEDGE & DISMISS</div>
-    `;
-    
-    toast.addEventListener("click", () => {
-        toast.style.animation = "slideOutRight 0.4s cubic-bezier(0.8, 0.2, 0.2, 1) forwards";
-        setTimeout(() => {
-            toast.remove();
-            activeAlerts.delete(alertId);
-            if (activeAlerts.size === 0) document.body.classList.remove('global-crisis-mode');
-        }, 400); 
-    });
-    
-    setTimeout(() => { if (activeAlerts.has(alertId)) toast.click(); }, 15000);
-    center.appendChild(toast);
-}
-const btnArm = document.getElementById("btn-arm-motors");
-const throttleSlider = document.getElementById("throttle-slider");
-const throttleReadout = document.getElementById("throttle-readout");
-let isArmed = false;
-
-if (btnArm) {
-    btnArm.addEventListener("click", () => {
-        isArmed = !isArmed;
-        if (isArmed) {
-            btnArm.className = "badge badge-online blink";
-            btnArm.innerText = "MOTORS ARMED";
-            if(throttleSlider) {
-                throttleSlider.disabled = false;
-                throttleSlider.classList.add("armed");
-            }
-        } else {
-            btnArm.className = "badge badge-offline";
-            btnArm.innerText = "SYSTEM DISARMED";
-            if(throttleSlider) {
-                throttleSlider.disabled = true;
-                throttleSlider.classList.remove("armed");
-                throttleSlider.value = 1000;
-            }
-            updateThrottleUI(1000);
-            sendThrottleToFirebase(1000);
-        }
-    });
-}
-
-let throttleTimeout = null;
-if (throttleSlider) {
-    throttleSlider.addEventListener("input", (e) => {
-        const val = parseInt(e.target.value);
-        updateThrottleUI(val);
+        // Prevent duplicate processing
+        if (d.sdp === currOff) return; 
+        currOff = d.sdp;
+        pendingOffer = d;
+        pendingId = id;
         
-        if (!throttleTimeout) {
-            throttleTimeout = setTimeout(() => {
-                sendThrottleToFirebase(val);
-                throttleTimeout = null;
-            }, 100);
-        }
+        // Ring the Commander via the Modal (Bypasses Mobile Autoplay Blocks)
+        if (ui.callerId) ui.callerId.innerText = `CMD-${id} // FIELD MIC`;
+        if (ui.callMod) ui.callMod.classList.add('active');
     });
 }
 
-function updateThrottleUI(usValue) {
-    const percent = Math.floor(((usValue - 1000) / 1000) * 100);
-    if (throttleReadout) {
-        throttleReadout.innerText = `${percent}%`;
-        throttleReadout.className = percent > 50 ? "mono-data text-red" : "mono-data text-neon";
-    }
+// Accept Call Event
+if (ui.btnAcc) {
+    ui.btnAcc.onclick = async () => {
+        ui.callMod.classList.remove('active');
+        if (ui.vBadge) { ui.vBadge.className = "badge badge-warning blink"; ui.vBadge.innerText = "ESTABLISHING UPLINK..."; }
+        if (pendingOffer) {
+            try { await handleOff(pendingOffer, pendingId); } 
+            catch (e) { console.error(e); stopRTC(); }
+        }
+    };
 }
 
-function sendThrottleToFirebase(usValue) {
-    set(ref(db, 'uav_commands/throttle_us'), usValue)
-        .catch(err => console.error("Propulsion Uplink Failed:", err));
+// Reject Call Event
+if (ui.btnRej) {
+    ui.btnRej.onclick = () => {
+        ui.callMod.classList.remove('active');
+        remove(ref(db, `active_soldiers/${pendingId}/comms/offer`));
+        pendingOffer = null;
+    };
 }
-
-let peerConnection = null;
-let currentOfferSDP = null;
-let webrtcListenerUnsubscribe = null;
-
-let mediaRecorder;
-let audioChunks = [];
-let audioContext, analyser, dataArray, visualizerAnimationFrame;
-const voiceHud = document.getElementById('voice-visualizer-hud');
-const voiceBars = document.querySelectorAll('.visualizer-bars .bar');
-
-const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
-
-function initWebRTCSignaling(soldierId) {
-    if (webrtcListenerUnsubscribe) {
-        webrtcListenerUnsubscribe();
-        cleanupVoiceLink();
-    }
+async function handleOff(o, id) {
+    if (rtc) rtc.close(); 
+    rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
     
-    console.log(`[COMM] Tuning RF Watchdog to CMD-${soldierId}...`);
-    const webrtcRef = ref(db, `active_soldiers/${soldierId}/comms/offer`);
-
-    webrtcListenerUnsubscribe = onValue(webrtcRef, async (snapshot) => {
-        const offerData = snapshot.val();
-        if (!offerData || !offerData.sdp) {
-            cleanupVoiceLink();
-            if (ui.voiceBadge) {
-                ui.voiceBadge.className = "badge badge-neutral";
-                ui.voiceBadge.innerText = "VOICE STANDBY";
-            }
-            return;
+    rtc.ontrack = e => {
+        audStrm = e.streams[0];
+        if (ui.vSink) { 
+            ui.vSink.srcObject = audStrm; 
+            ui.vSink.play().catch(err => console.error("Audio blocked:", err)); 
         }
-
-        if (offerData.sdp === currentOfferSDP) return;
-        currentOfferSDP = offerData.sdp;
-
-        if (ui.voiceBadge) {
-            ui.voiceBadge.className = "badge badge-warning blink";
-            ui.voiceBadge.innerText = "LINK NEGOTIATING...";
-        }
-
-        try {
-            await handleIncomingOffer(offerData, soldierId);
-        } catch (err) {
-            console.error("[COMM] Handshake failure:", err);
-            cleanupVoiceLink();
-        }
-    });
-}
-
-async function handleIncomingOffer(offer, soldierId) {
-    if (peerConnection) peerConnection.close();
-    peerConnection = new RTCPeerConnection(rtcConfig);
-
-    peerConnection.ontrack = (event) => {
-        console.log(`[COMM] Track locked. Decrypting voice feed for CMD-${soldierId}...`);
-        const stream = event.streams[0];
-        
-        // 1. Play Audio
-        if (ui.voiceSink) {
-            ui.voiceSink.srcObject = stream;
-            ui.voiceSink.play().catch(e => console.warn("Autoplay blocked:", e));
-        }
-        if (ui.voiceBadge) {
-            ui.voiceBadge.className = "badge badge-online blink";
-            ui.voiceBadge.innerText = "VOICE LIVE";
-        }
-        er
-        startVisualizer(stream);
-
-        audioChunks = [];
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-        
-        mediaRecorder.onstop = async () => {
-            if (audioChunks.length === 0) return;
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            const timestamp = new Date().getTime();
-            const logRef = storageRef(storage, `combat_logs/CMD-${soldierId}/voice_logs/intercept_${timestamp}.webm`);
-            
-            try {
-                await uploadBytes(logRef, audioBlob);
-                console.log(`[STORAGE] Voice intercept archived: CMD-${soldierId}/voice_logs/intercept_${timestamp}.webm`);
-            } catch (e) {
-                console.error("[STORAGE] Archive failed.", e);
+        try { startViz(audStrm); } catch {}
+        if (ui.vBadge) { ui.vBadge.className = "badge badge-online blink"; ui.vBadge.innerText = "VOICE LIVE"; }
+    };
+    
+    rtc.onconnectionstatechange = () => { 
+        let s = rtc.connectionState; 
+        if (s === "disconnected" || s === "failed" || s === "closed") { 
+            stopRTC(); 
+            if (ui.vBadge) { ui.vBadge.className = "badge badge-neutral"; ui.vBadge.innerText = "VOICE STANDBY"; } 
+        } 
+    };
+    
+    await rtc.setRemoteDescription(new RTCSessionDescription(o));
+    let a = await rtc.createAnswer(); 
+    await rtc.setLocalDescription(a);
+    
+    // CRITICAL FIX: Wait for the phone to gather its public IP from the STUN server
+    if (rtc.iceGatheringState === "complete") {
+        await set(ref(db, `active_soldiers/${id}/comms/answer`), { type: rtc.localDescription.type, sdp: rtc.localDescription.sdp });
+    } else {
+        rtc.onicecandidate = (event) => {
+            // When event.candidate is null, gathering is complete
+            if (event.candidate === null) {
+                set(ref(db, `active_soldiers/${id}/comms/answer`), { type: rtc.localDescription.type, sdp: rtc.localDescription.sdp });
             }
         };
-        mediaRecorder.start(1000); 
-    };
-
-    peerConnection.onconnectionstatechange = () => {
-        const state = peerConnection.connectionState;
-        if (state === "disconnected" || state === "failed" || state === "closed") {
-            cleanupVoiceLink();
-            if (ui.voiceBadge) {
-                ui.voiceBadge.className = "badge badge-neutral";
-                ui.voiceBadge.innerText = "VOICE STANDBY";
-            }
-        }
-    };
-
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-
-    await set(ref(db, `active_soldiers/${soldierId}/comms/answer`), {
-        type: answer.type,
-        sdp: answer.sdp
-    });
+    }
 }
 
-function startVisualizer(stream) {
-    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+function startViz(s) {
+    if (!aCtx) aCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (aCtx.state === 'suspended') aCtx.resume();
     
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 64; 
-    const source = audioContext.createMediaStreamSource(stream);
-    source.connect(analyser); 
-
-    const bufferLength = analyser.frequencyBinCount;
-    dataArray = new Uint8Array(bufferLength);
-
-    if (voiceHud) voiceHud.classList.add('active');
+    aNly = aCtx.createAnalyser(); 
+    aNly.fftSize = 64; 
+    aNly.smoothingTimeConstant = 0.8;
+    aCtx.createMediaStreamSource(s).connect(aNly);
     
-    function renderFrame() {
-        visualizerAnimationFrame = requestAnimationFrame(renderFrame);
-        analyser.getByteFrequencyData(dataArray);
-        
-        if (voiceBars) {
-            voiceBars.forEach((bar, index) => {
-                const value = dataArray[index] || 0; 
-                const height = Math.max(4, (value / 255) * 50);
-                bar.style.height = `${height}px`;
-            });
-        }
+    dArr = new Uint8Array(aNly.frequencyBinCount);
+    let h = $('voice-visualizer-hud'); 
+    if (h) h.classList.add('active');
+    
+    function rFrame() {
+        vAF = requestAnimationFrame(rFrame); 
+        aNly.getByteFrequencyData(dArr);
+        let bs = document.querySelectorAll('.visualizer-bars .bar');
+        if (bs) bs.forEach((b, i) => b.style.height = Math.max(4, ((dArr[i] || 0) / 255) * 48) + 'px');
     }
-    renderFrame();
+    rFrame();
 }
-function cleanupVoiceLink() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-    }
-    if (visualizerAnimationFrame) cancelAnimationFrame(visualizerAnimationFrame);
-    if (voiceHud) voiceHud.classList.remove('active');
-    if (voiceBars) voiceBars.forEach(bar => bar.style.height = '4px');
-    
-    currentOfferSDP = null;
+
+function stopRTC() {
+    if (vAF) cancelAnimationFrame(vAF);
+    let h = $('voice-visualizer-hud'), bs = document.querySelectorAll('.visualizer-bars .bar');
+    if (h) h.classList.remove('active'); 
+    if (bs) bs.forEach(b => b.style.height = '4px');
+    audStrm = null; 
+    pendingOffer = null;
 }
