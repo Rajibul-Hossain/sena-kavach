@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase, ref, onValue, get, set, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { getStorage, ref as sRef, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-import { uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { getStorage, ref as sRef, listAll, getDownloadURL, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+
 if (localStorage.getItem("cmd_auth") !== "true") localStorage.setItem("cmd_auth", "true");
 
 const cfg = {
@@ -38,7 +38,7 @@ const ui = {
     uavWin: $('uav-window'), uavHdr:$('uav-header'), uavMin: $('uav-min'), uavCls:$('uav-close'), 
     btnSrv: $('btn-deploy-servo'), espCam: $('esp32-stream'), vBadge:$('ui-voice-badge'), 
     vSink: $('tactical-voice-sink'), callMod: $('incoming-call-modal'), callerId:$('caller-id'),
-    btnAcc: $('btn-accept-call'), btnRej:$('btn-reject-call')
+    btnAcc: $('btn-accept-call'), btnRej: $('btn-reject-call'), btnManualAi:$('btn-manual-ai')
 };
 
 let curLis = null, isAI = false, lastImg = null, alerts = new Set();
@@ -88,7 +88,6 @@ function setUnit(id) {
 
 function startTel(id) {
     if (curLis) curLis();
-    let initLd = true;
     curLis = onValue(ref(db, 'active_soldiers/' + id), sn => {
         let d = sn.val();
         if (d) {
@@ -127,14 +126,25 @@ function startTel(id) {
                 let p = parseFloat(d.telemetry.pitch || 0), r = parseFloat(d.telemetry.roll || 0);
                 if (ui.pitch) { ui.pitch.innerText = p.toFixed(1); ui.pitch.className = Math.abs(p) > 60 ? 'value-critical-flash' : 'text-neon'; }
                 if (ui.roll) { ui.roll.innerText = r.toFixed(1); ui.roll.className = Math.abs(r) > 60 ? 'value-critical-flash' : 'text-neon'; }
-                if (!initLd && (Math.abs(p) > 60 || Math.abs(r) > 60) && !isAI) trigAI(id, p, r, d.environment ? d.environment.gas_level : 0);
+                
+                // CRITICAL UPDATE: Instead of forcing the modal open, just prompt the Commander via the button
+                if ((Math.abs(p) > 60 || Math.abs(r) > 60)) {
+                    if (ui.btnManualAi && !isAI) {
+                        ui.btnManualAi.classList.add('ai-suggested');
+                        ui.btnManualAi.innerText = "⚠️ ANOMALY: RUN AI SCAN";
+                    }
+                } else {
+                    if (ui.btnManualAi && !isAI) {
+                        ui.btnManualAi.classList.remove('ai-suggested');
+                        ui.btnManualAi.innerText = "👁️ REQUEST AI SCAN";
+                    }
+                }
             }
         }
-        initLd = false;
     });
 }
 
-// --- OPTICS & AI OVERWATCH ---
+// --- OPTICS & MANUAL AI OVERWATCH ---
 async function getOpt(id) {
     if (!ui.optBadge) return;
     ui.optBadge.className = "badge badge-neutral"; ui.optBadge.innerText = "SCANNING...";
@@ -149,12 +159,19 @@ async function getOpt(id) {
     } catch { ui.optBadge.className = "badge badge-offline"; ui.optBadge.innerText = "UPLINK FAILED"; }
 }
 
-async function trigAI(id, p, r, g) {
+async function trigAI(id, p, r) {
     isAI = true; let u = lastImg || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=600&q=80";
     if (ui.aiMod) ui.aiMod.classList.add('active'); if (ui.aiImg) ui.aiImg.src = u;
     if (ui.aiTs) ui.aiTs.innerText = new Date().toLocaleTimeString();
     if (ui.aiHw) ui.aiHw.innerText = `TILT (P: ${p}° | R: ${r}°)`;
     if (ui.aiClass) { ui.aiClass.innerText = "ANALYZING..."; ui.aiClass.className = "data-large text-neon blink"; }
+    
+    // Reset button immediately upon running scan
+    if (ui.btnManualAi) {
+        ui.btnManualAi.classList.remove('ai-suggested');
+        ui.btnManualAi.innerText = "👁️ REQUEST AI SCAN";
+    }
+
     try {
         const res = await fetchT("http://127.0.0.1:5000/verify_vision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ soldier_id: id, image_url: u, pitch: p, roll: r }) });
         if (!res.ok) throw new Error();
@@ -165,6 +182,23 @@ async function trigAI(id, p, r, g) {
         if (ui.aiClass) { ui.aiClass.className = "data-large"; ui.aiClass.innerText = "SIMULATED OVERWATCH"; ui.aiClass.style.color = "var(--camo-neon)"; }
         if (ui.aiConf) ui.aiConf.innerText = "94.2%"; if (ui.aiRsn) ui.aiRsn.innerText = "Offline heuristic evaluation: Postural telemetry confirms acute soldier tilt.";
     }
+}
+
+// Attach click listener for manual AI trigger
+if (ui.btnManualAi) {
+    ui.btnManualAi.onclick = () => {
+        const currP = parseFloat(ui.pitch ? ui.pitch.innerText : 0) || 0;
+        const currR = parseFloat(ui.roll ? ui.roll.innerText : 0) || 0;
+        trigAI(window.currId || "101", currP, currR);
+    };
+}
+
+// Ensure the modal resets cleanly when dismissed
+if (ui.btnDis) {
+    ui.btnDis.onclick = () => { 
+        ui.aiMod.classList.remove('active'); 
+        isAI = false; 
+    };
 }
 
 function evalThresh(id, d) {
@@ -195,7 +229,6 @@ if (ui.uavHdr) {
     ui.uavMin.onclick = () => ui.uavWin.classList.toggle('minimized'); ui.uavCls.onclick = () => ui.uavWin.classList.add('closed');
 }
 if (ui.sel) ui.sel.onchange = e => { if (e.target.value) setUnit(e.target.value); };
-if (ui.btnDis) ui.btnDis.onclick = () => { ui.aiMod.classList.remove('active'); setTimeout(() => isAI = false, 15000); };
 if (ui.btnOut) ui.btnOut.onclick = () => { if (curLis) curLis(); localStorage.clear(); window.location.href = "../login.html"; };
 window.onpagehide = () => { if (curLis) curLis(); };
 getUnits();
@@ -212,6 +245,7 @@ if (ui.btnSrv) ui.btnSrv.onclick = async () => {
     try { await fetchT(`http://192.168.137.68:82/servo?angle=90`); setTimeout(async () => { await fetchT(`http://192.168.137.68:82/servo?angle=0`); b.innerText = "DEPLOYED"; ui.btnSrv.style.background = "var(--camo-neon)"; setTimeout(() => { b.innerText = "ACTUATE [90°]"; ui.btnSrv.style.background = ""; ui.btnSrv.style.color = ""; }, 3000); }, 1500); } 
     catch { b.innerText = "FAILED"; ui.btnSrv.style.background = "var(--alert-red)"; setTimeout(() => { b.innerText = "ACTUATE [90°]"; ui.btnSrv.style.background = ""; ui.btnSrv.style.color = ""; }, 3000); }
 };
+
 // ==========================================
 // TACTICAL VOICE COMMS & COMMAND PANEL
 // ==========================================
@@ -231,13 +265,8 @@ const btnRelay = $('btn-panel-relay');
 const relayTarget = $('relay-target-select');
 const btnTerminate = $('btn-panel-terminate');
 
-// --- TOGGLE PANEL ---
 const triggerArea = $('voice-visualizer-trigger');
-if (triggerArea) {
-    triggerArea.addEventListener('click', () => {
-        if (ctrlPanel) ctrlPanel.classList.toggle('active');
-    });
-}
+if (triggerArea) { triggerArea.addEventListener('click', () => { if (ctrlPanel) ctrlPanel.classList.toggle('active'); }); }
 
 function initRTC(id) {
     if (rtcLis) { rtcLis(); stopRTC(); }
@@ -261,19 +290,12 @@ if (ui.btnAcc) {
     ui.btnAcc.onclick = async () => {
         ui.callMod.classList.remove('active');
         if (ui.vBadge) { ui.vBadge.className = "badge badge-warning blink"; ui.vBadge.innerText = "ESTABLISHING UPLINK..."; }
-        if (pendingOffer) {
-            try { await handleOff(pendingOffer, pendingId); } 
-            catch (e) { console.error(e); stopRTC(); }
-        }
+        if (pendingOffer) { try { await handleOff(pendingOffer, pendingId); } catch (e) { stopRTC(); } }
     };
 }
 
 if (ui.btnRej) {
-    ui.btnRej.onclick = () => {
-        ui.callMod.classList.remove('active');
-        remove(ref(db, `active_soldiers/${pendingId}/comms/offer`));
-        pendingOffer = null;
-    };
+    ui.btnRej.onclick = () => { ui.callMod.classList.remove('active'); remove(ref(db, `active_soldiers/${pendingId}/comms/offer`)); pendingOffer = null; };
 }
 
 async function handleOff(o, id) {
@@ -282,24 +304,12 @@ async function handleOff(o, id) {
     
     rtc.ontrack = e => {
         audStrm = e.streams[0];
-        if (ui.vSink) { 
-            ui.vSink.srcObject = audStrm; 
-            ui.vSink.play().catch(err => console.error("Audio blocked:", err)); 
-        }
+        if (ui.vSink) { ui.vSink.srcObject = audStrm; ui.vSink.play().catch(err => console.error("Audio blocked:", err)); }
         try { startViz(audStrm); } catch {}
         if (ui.vBadge) { ui.vBadge.className = "badge badge-online blink"; ui.vBadge.innerText = "VOICE LIVE"; }
         
-        // Reset UI Buttons
-        if (btnRec) {
-            isRecording = false;
-            btnRec.innerText = "⏺ INITIATE ARCHIVE LOG";
-            btnRec.classList.remove('active-record');
-        }
-        if (btnMute && ui.vSink) {
-            ui.vSink.muted = false;
-            btnMute.innerText = "🔇 MUTE LOCAL OUTPUT";
-            btnMute.style.color = "var(--camo-neon)";
-        }
+        if (btnRec) { isRecording = false; btnRec.innerText = "⏺ INITIATE ARCHIVE LOG"; btnRec.classList.remove('active-record'); }
+        if (btnMute && ui.vSink) { ui.vSink.muted = false; btnMute.innerText = "🔇 MUTE LOCAL OUTPUT"; btnMute.style.color = "var(--camo-neon)"; }
     };
     
     rtc.onconnectionstatechange = () => { 
@@ -313,15 +323,9 @@ async function handleOff(o, id) {
     if (rtc.iceGatheringState === "complete") {
         await set(ref(db, `active_soldiers/${id}/comms/answer`), { type: rtc.localDescription.type, sdp: rtc.localDescription.sdp });
     } else {
-        rtc.onicecandidate = (event) => {
-            if (event.candidate === null) {
-                set(ref(db, `active_soldiers/${id}/comms/answer`), { type: rtc.localDescription.type, sdp: rtc.localDescription.sdp });
-            }
-        };
+        rtc.onicecandidate = (event) => { if (event.candidate === null) { set(ref(db, `active_soldiers/${id}/comms/answer`), { type: rtc.localDescription.type, sdp: rtc.localDescription.sdp }); } };
     }
 }
-
-// --- TACTICAL PANEL BUTTON LISTENERS ---
 
 // 1. RECORD LOGIC
 if (btnRec) {
@@ -337,17 +341,13 @@ if (btnRec) {
                     const blob = new Blob(audioChunks, { type: 'audio/webm' });
                     await uploadBytes(sRef(st, `combat_logs/CMD-${window.currId || "101"}/voice_logs/intercept_${Date.now()}.webm`), blob);
                     trigAlert(window.currId || "101", "INTEL_SECURED", "Voice intercept archived to Firebase Storage.");
-                } catch (e) { console.error("Upload failed", e); }
+                } catch (e) {}
             };
-            mediaRecorder.start(1000);
-            isRecording = true;
-            btnRec.innerText = "⏹ STOP & ARCHIVE LOG";
-            btnRec.classList.add('active-record');
+            mediaRecorder.start(1000); isRecording = true;
+            btnRec.innerText = "⏹ STOP & ARCHIVE LOG"; btnRec.classList.add('active-record');
         } else {
             if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-            isRecording = false;
-            btnRec.innerText = "✅ ARCHIVED TO CLOUD";
-            btnRec.classList.remove('active-record');
+            isRecording = false; btnRec.innerText = "✅ ARCHIVED TO CLOUD"; btnRec.classList.remove('active-record');
             setTimeout(() => btnRec.innerText = "⏺ INITIATE ARCHIVE LOG", 3000);
         }
     };
@@ -358,13 +358,8 @@ if (btnMute) {
     btnMute.onclick = () => {
         if (ui.vSink) {
             ui.vSink.muted = !ui.vSink.muted;
-            if (ui.vSink.muted) {
-                btnMute.innerText = "🔊 UNMUTE LOCAL OUTPUT";
-                btnMute.style.color = "var(--alert-red)";
-            } else {
-                btnMute.innerText = "🔇 MUTE LOCAL OUTPUT";
-                btnMute.style.color = "var(--camo-neon)";
-            }
+            if (ui.vSink.muted) { btnMute.innerText = "🔊 UNMUTE LOCAL OUTPUT"; btnMute.style.color = "var(--alert-red)"; } 
+            else { btnMute.innerText = "🔇 MUTE LOCAL OUTPUT"; btnMute.style.color = "var(--camo-neon)"; }
         }
     };
 }
@@ -374,15 +369,9 @@ if (btnRelay) {
     btnRelay.onclick = () => {
         const newTarget = relayTarget.value;
         if (newTarget === (window.currId || "101")) return;
-        
-        // Sever current link cleanly
         remove(ref(db, `active_soldiers/${window.currId || "101"}/comms`));
         stopRTC();
-        
-        // Trigger UI change to new soldier
-        if (ui.sel) ui.sel.value = newTarget;
-        setUnit(newTarget);
-        
+        if (ui.sel) ui.sel.value = newTarget; setUnit(newTarget);
         trigAlert(newTarget, "RELAY_ACTIVE", `RF Watchdog rerouted to CMD-${newTarget}.`);
         if (ctrlPanel) ctrlPanel.classList.remove('active');
     };
@@ -391,21 +380,18 @@ if (btnRelay) {
 // 4. FORCE TERMINATE LOGIC
 if (btnTerminate) {
     btnTerminate.onclick = () => {
-        remove(ref(db, `active_soldiers/${window.currId || "101"}/comms`));
-        stopRTC();
+        remove(ref(db, `active_soldiers/${window.currId || "101"}/comms`)); stopRTC();
         trigAlert(window.currId || "101", "UPLINK_SEVERED", "Commander forcibly terminated the connection.");
         if (ctrlPanel) ctrlPanel.classList.remove('active');
         if (ui.vBadge) { ui.vBadge.className = "badge badge-neutral"; ui.vBadge.innerText = "VOICE STANDBY"; }
     };
 }
 
-// --- CORE UTILITIES ---
 function startViz(s) {
     if (!aCtx) aCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (aCtx.state === 'suspended') aCtx.resume();
     aNly = aCtx.createAnalyser(); aNly.fftSize = 64; aNly.smoothingTimeConstant = 0.8;
-    aCtx.createMediaStreamSource(s).connect(aNly);
-    dArr = new Uint8Array(aNly.frequencyBinCount);
+    aCtx.createMediaStreamSource(s).connect(aNly); dArr = new Uint8Array(aNly.frequencyBinCount);
     let h = $('voice-visualizer-hud'); if (h) h.classList.add('active');
     function rFrame() {
         vAF = requestAnimationFrame(rFrame); aNly.getByteFrequencyData(dArr);
@@ -419,8 +405,7 @@ function stopRTC() {
     if (isRecording && mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
     if (vAF) cancelAnimationFrame(vAF);
     let h = $('voice-visualizer-hud'), bs = document.querySelectorAll('.visualizer-bars .bar');
-    if (h) h.classList.remove('active'); 
-    if (bs) bs.forEach(b => b.style.height = '4px');
+    if (h) h.classList.remove('active'); if (bs) bs.forEach(b => b.style.height = '4px');
     if (ctrlPanel) ctrlPanel.classList.remove('active');
     audStrm = null; pendingOffer = null; isRecording = false;
 }
