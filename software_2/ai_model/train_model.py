@@ -90,5 +90,4 @@ history = model.fit(
     epochs=EPOCHS,
     callbacks=callbacks
 )
-
 print(f"[SUCCESS] Best checkpoint automatically secured to '{EXPORT_PATH}'")

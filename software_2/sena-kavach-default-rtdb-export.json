@@ -1,0 +1,146 @@
+{
+  "active_soldiers": {
+    "10": {
+      "army_no": "CMD-10",
+      "environment": {
+        "gas_level": 265,
+        "humidity_rh": 54.1,
+        "temperature_c": 27.8
+      },
+      "location": {
+        "altitude_m": 0,
+        "hdop": 0,
+        "latitude": 0,
+        "longitude": 0,
+        "satellites": 0,
+        "speed_kmh": 0
+      },
+      "status": "ACTIVE_COMBAT",
+      "tactical": {
+        "obstacle_detected": 1
+      },
+      "telemetry": {
+        "pitch": -65.8,
+        "roll": 19.3
+      }
+    },
+    "101": {
+      "army_no": "CMD-101",
+      "comms": {
+        "answer": {
+          "sdp": "v=0\r\no=- 7525694193371874999 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=msid-semantic: WMS\r\nm=audio 9 UDP/TLS/RTP/SAVPF 96 9 0 8\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:7MtF\r\na=ice-pwd:vaKoIrO+QdXJssrioiXRyS4l\r\na=ice-options:trickle\r\na=fingerprint:sha-256 96:BD:47:66:A9:1D:84:83:6F:E9:08:B0:E4:F6:D2:BC:EE:22:CF:A4:6F:DA:70:01:68:ED:B4:AC:08:22:57:10\r\na=setup:active\r\na=mid:0\r\na=extmap:2 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\na=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=recvonly\r\na=rtcp-mux\r\na=rtpmap:96 opus/48000/2\r\na=fmtp:96 minptime=10;useinbandfec=1\r\na=rtpmap:9 G722/8000\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\n",
+          "type": "answer"
+        }
+      },
+      "environment": {
+        "gas_level": 381,
+        "humidity_rh": 0,
+        "temperature_c": 0
+      },
+      "location": {
+        "altitude_m": 0,
+        "hdop": 999,
+        "latitude": 0,
+        "longitude": 0,
+        "satellites": 0,
+        "speed_kmh": 0
+      },
+      "status": "ACTIVE_COMBAT",
+      "tactical": {
+        "obstacle_detected": 0
+      },
+      "telemetry": {
+        "pitch": -62.7,
+        "roll": 25.5
+      }
+    },
+    "404": {
+      "army_no": "CMD-404",
+      "environment": {
+        "gas_level": 392,
+        "humidity_rh": 56.1,
+        "temperature_c": 29
+      },
+      "location": {
+        "altitude_m": 0,
+        "hdop": 999,
+        "latitude": 0,
+        "longitude": 0,
+        "satellites": 0,
+        "speed_kmh": 0
+      },
+      "status": "ACTIVE_COMBAT",
+      "tactical": {
+        "obstacle_detected": 1
+      },
+      "telemetry": {
+        "pitch": -62,
+        "roll": 0
+      }
+    },
+    "CMD-101": {
+      "army_no": "CMD-101",
+      "environment": {
+        "gas_level": 324,
+        "humidity_rh": 76.3,
+        "temperature_c": 19.8
+      },
+      "heart_rate": 92,
+      "location": {
+        "altitude_m": 0,
+        "latitude": 0,
+        "longitude": 0,
+        "satellites": 0,
+        "speed_kmh": 0
+      },
+      "status": "ACTIVE_COMBAT",
+      "tactical": {
+        "obstacle_detected": 1
+      },
+      "telemetry": {
+        "pitch": -89.5,
+        "roll": 106.7
+      }
+    },
+    "CMD-9588992197": {
+      "army_no": "CMD-9588992197",
+      "environment": {
+        "gas_level": 340,
+        "humidity_rh": 81.3,
+        "temperature_c": 17.5
+      },
+      "heart_rate": 93,
+      "location": {
+        "altitude_m": 0,
+        "latitude": 0,
+        "longitude": 0,
+        "satellites": 0,
+        "speed_kmh": 0
+      },
+      "status": "ACTIVE_COMBAT",
+      "tactical": {
+        "obstacle_detected": 0
+      },
+      "telemetry": {
+        "pitch": 0,
+        "roll": 106.8
+      }
+    }
+  },
+  "command_state": {
+    "active_target": "10"
+  },
+  "uav_commands": {
+    "throttle_us": 1000
+  },
+  "webrtc": {
+    "answer": {
+      "sdp": "v=0\r\no=- 7837494395909700863 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=msid-semantic: WMS\r\nm=audio 9 UDP/TLS/RTP/SAVPF 96 9 0 8\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:sjLQ\r\na=ice-pwd:IPsbqzRa/b0qc9V3qK7W2OHP\r\na=ice-options:trickle\r\na=fingerprint:sha-256 24:41:46:8B:9C:B9:89:50:82:39:2D:E5:AE:EB:2A:D0:63:D4:33:F9:E5:C0:5D:F9:BA:A0:1C:7A:E0:EE:5F:C6\r\na=setup:active\r\na=mid:0\r\na=extmap:2 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\na=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=recvonly\r\na=rtcp-mux\r\na=rtpmap:96 opus/48000/2\r\na=fmtp:96 minptime=10;useinbandfec=1\r\na=rtpmap:9 G722/8000\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\n",
+      "type": "answer"
+    },
+    "offer": {
+      "sdp": "v=0\r\no=- 4001422895 4001422895 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=msid-semantic:WMS *\r\nm=audio 51705 UDP/TLS/RTP/SAVPF 96 9 0 8\r\nc=IN IP4 192.168.137.1\r\na=sendrecv\r\na=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=extmap:2 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\na=mid:0\r\na=msid:bf35aee6-798b-4d0c-906a-5ce78af975c6 2524abaa-a79f-4291-9b63-3f7fb6348237\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=rtcp-mux\r\na=ssrc:3119605070 cname:b6ab4bea-c184-46e6-8fc6-54ae68c0d33a\r\na=rtpmap:96 opus/48000/2\r\na=rtpmap:9 G722/8000\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\na=candidate:b44ed51cf2e231e4466c8715b35d3c7e 1 udp 2130706431 192.168.137.1 51705 typ host\r\na=candidate:93d92a61a7b3611666ad0be0b567e61c 1 udp 2130706431 2405:201:8007:e0e8:c816:afd4:9f9:71ff 51706 typ host\r\na=candidate:2d66fabd020faae6b2970e3bd689067c 1 udp 2130706431 2405:201:8007:e0e8:30b6:f204:9aad:f953 51707 typ host\r\na=candidate:3482b231a71178e4ad71f7f79800ac74 1 udp 2130706431 192.168.29.154 51708 typ host\r\na=candidate:01fc6b4f999c2dc10bb2d678dbf6ce88 1 udp 2130706431 172.20.176.1 51709 typ host\r\na=candidate:cadc76855dfabfc325df3e8d9b2a7658 1 udp 1694498815 49.37.40.21 51708 typ srflx raddr 192.168.29.154 rport 51708\r\na=end-of-candidates\r\na=ice-ufrag:EHxB\r\na=ice-pwd:k5XBkS1Err9SG2ZhLFHhJT\r\na=fingerprint:sha-256 F2:E7:13:F1:93:B7:DD:E4:AE:9A:EB:EF:9D:DB:66:32:73:12:71:43:0D:64:C0:68:88:88:6C:C5:9E:E7:86:AA\r\na=fingerprint:sha-384 E2:43:52:16:36:9B:C4:EE:FA:57:AD:CB:9F:55:86:DE:AE:29:6F:0E:E1:FE:8C:0E:43:42:48:9D:3A:33:EB:9B:54:90:65:3E:90:BC:53:50:95:59:E2:61:13:69:4F:E2\r\na=fingerprint:sha-512 FE:D4:C1:55:64:27:9F:26:C1:71:7D:D2:BF:10:51:85:19:C4:18:3B:2E:9C:30:4F:86:FA:B5:AD:C0:BE:09:59:1C:EB:78:AD:64:45:D9:A2:17:94:C9:6A:B0:30:8F:87:7D:F1:A9:E3:BB:AB:E8:FF:51:95:3C:9E:79:34:D4:2B\r\na=setup:actpass\r\n",
+      "type": "offer"
+    }
+  }
+}
