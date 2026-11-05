@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sena Kavach // Tactical Command Node</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles_ai.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body class="dashboard-body">
@@ -100,8 +100,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- 3. SATELLITE MAP (Placed in Row 2, replacing old Heart Rate slot) -->
             <section class="glass-card widget-map col-span-2" id="widget-map" style="cursor: pointer; position: relative;">
                 <div class="card-header">
                     <h2>SATELLITE TOPOLOGY</h2>
@@ -116,8 +114,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- 4. ENVIRONMENTAL SENSOR SUITE -->
             <section class="glass-card widget-gas col-span-2">
                 <div class="card-header">
                     <h2>ENVIRONMENTAL SUITE</h2>
@@ -141,8 +137,6 @@
                 
                 <div class="progress-bar"><div id="bar-gas" class="progress-fill"></div></div>
             </section>
-
-            <!-- 5. ATTITUDE & GYROSCOPE -->
             <section class="glass-card widget-attitude col-span-2">
                 <div class="card-header">
                     <h2>GYROSCOPE & ATTITUDE</h2>
@@ -163,8 +157,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- 6. BIOMETRICS (HEART RATE) -->
             <section class="glass-card widget-bio col-span-2">
                 <div class="card-header">
                     <h2>HEART RATE MONITOR</h2>
@@ -175,8 +167,6 @@
                     <div class="progress-bar"><div id="bar-bpm" class="progress-fill"></div></div>
                 </div>
             </section>
-
-            <!-- 7. VISUAL CAPTURES (Shifted to Bottom) -->
             <section class="glass-card widget-media col-span-2" id="widget-optics">
                 <div class="card-header">
                     <h2>VISUAL CAPTURES</h2>
@@ -201,10 +191,7 @@
                     </div>
                 </div>
             </section>
-        <!-- HIDDEN AUDIO SINK -->
             <audio id="tactical-voice-sink" autoplay></audio>
-
-            <!-- INCOMING TRANSMISSION MODAL -->
             <div class="call-modal" id="incoming-call-modal">
                 <div class="call-box">
                     <h2 class="text-neon blink" style="margin-bottom: 5px; font-size: 24px;">INCOMING TRANSMISSION</h2>
@@ -215,10 +202,7 @@
                     </div>
                 </div>
             </div>
-<!-- TACTICAL VOICE VISUALIZER HUD -->
             <div class="voice-comms-hud" id="voice-visualizer-hud">
-                
-                <!-- TACTICAL COMMAND POPUP PANEL -->
                 <div class="comms-control-panel" id="comms-control-panel">
                     <div class="panel-header">COMMAND & ROUTING</div>
                     <button class="btn-panel" id="btn-panel-record">⏺ INITIATE ARCHIVE LOG</button>
@@ -238,7 +222,6 @@
                     <span class="status-pulse"></span>
                     <span class="mono-label text-neon" style="margin-bottom: 0;">SECURE COMMS UPLINK ACTIVE</span>
                 </div>
-                <!-- Make the bars clickable -->
                 <div class="visualizer-bars" id="voice-visualizer-trigger" style="cursor: pointer; padding: 5px 0;" title="Tap for Tactical Controls">
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -250,7 +233,6 @@
                 </div>
                 <div style="font-size: 9px; color: #666; margin-top: -2px; text-align: center; pointer-events: none;">[ TAP FREQUENCY BARS FOR CONTROLS ]</div>
             </div>
-            <!-- MANUAL AI OVERWATCH TRIGGER -->
             <div id="ai-trigger-container" style="position: fixed; right: 25px; bottom: 100px; z-index: 9000;">
                 <button id="btn-manual-ai" class="btn-execute" style="font-family: 'Space Mono', monospace; font-size: 11px; padding: 12px 20px; background: rgba(10,15,10,0.8); border: 1px solid var(--camo-neon); color: var(--camo-neon); border-radius: 4px; cursor: pointer; transition: 0.3s; box-shadow: 0 0 15px rgba(118,185,0,0.2);">
                     👁️ REQUEST AI SCAN
@@ -258,8 +240,6 @@
             </div>
         </main>
     </div>
-
-    <!-- macOS Sonoma UAV HUD -->
     <div id="uav-window" class="sonoma-window">
         <header class="sonoma-header" id="uav-header">
             <div class="mac-controls">
@@ -271,11 +251,10 @@
         </header>
         <div class="sonoma-body" id="uav-body"> 
             <div class="video-feed-container">
-                <img id="esp32-stream" src="http://10.208.142.114:8889/cam/" alt="UAV Feed">
+                <img id="esp32-stream" src="http://10.45.122.42:8000/" alt="UAV Feed">
                 <div class="feed-overlay"><span class="pulse-ring"></span> LIVE FEED</div>
             </div>
             <div class="uav-controls">
-                <!-- Propulsion System -->
                 <div style="background: rgba(0,0,0,0.4); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <span class="mono-tag" style="color: var(--camo-neon);">TRI-BLDC PROPULSION</span>
@@ -291,8 +270,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Optics Expansion Modal -->
     <div class="optics-modal-overlay" id="optics-modal">
         <div class="optics-modal-content" id="optics-modal-content">
             <header class="modal-header">
@@ -308,8 +285,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Expanded Topological Map Modal -->
     <div class="optics-modal-overlay" id="map-modal">
         <div class="optics-modal-content map-modal-content" id="map-modal-content">
             <header class="modal-header">
@@ -360,8 +335,6 @@
             </div>
         </div>
     </div>
-
-    <!-- AI OVERWATCH MODAL -->
     <div class="optics-modal-overlay ai-alert-overlay" id="ai-modal">
         <div class="optics-modal-content ai-alert-box">
             <header class="modal-header alert-header">
@@ -409,5 +382,100 @@
     <script type="module" src="app.js"></script>
     <!-- Hidden WebRTC Audio Sink -->
     <audio id="tactical-voice-sink" autoplay playsinline style="display:none;"></audio>
+ <!-- Include this in your <head> to parse AI Markdown (asterisks) into actual HTML -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<style>
+    /* Ensure Product Sans is applied. Fallback to similar modern geometries if missing locally */
+    @font-face {
+        font-family: 'Product Sans';
+        src: local('Product Sans'), local('Google Sans'), url(https://fonts.gstatic.com/s/productsans/v5/HYvgU2fE2nRJvZ5JFAumwegdm0LZdjqr5-oayXSOefg.woff2) format('woff2');
+    }
+
+    .clay-modal {
+        font-family: 'Product Sans', sans-serif;
+        background: #1e293b; /* Deep slate blue */
+        border-radius: 28px;
+        padding: 40px;
+        max-width: 600px;
+        width: 90%;
+        /* Claymorphism: Outset drop shadow + Top-left light inset + Bottom-right dark inset */
+        box-shadow: 
+            12px 12px 24px rgba(0, 0, 0, 0.4),
+            inset 4px 4px 10px rgba(255, 255, 255, 0.1),
+            inset -4px -4px 10px rgba(0, 0, 0, 0.5);
+    }
+    .clay-recessed {
+        background: #141c29;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 
+            inset 6px 6px 12px rgba(0, 0, 0, 0.6),
+            inset -6px -6px 12px rgba(255, 255, 255, 0.05);
+    }
+    .clay-btn {
+        flex: 1;
+        padding: 16px;
+        border: none;
+        border-radius: 16px;
+        font-weight: 700;
+        font-size: 15px;
+        font-family: 'Product Sans', sans-serif;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .clay-btn:active {
+        transform: scale(0.97);
+        box-shadow: inset 4px 4px 10px rgba(0,0,0,0.5), inset -4px -4px 10px rgba(255,255,255,0.1);
+    }
+    .clay-btn-auth {
+        background: #0ea5e9; 
+        color: #ffffff;
+        box-shadow: 
+            6px 6px 12px rgba(0, 0, 0, 0.3),
+            inset 3px 3px 8px rgba(255, 255, 255, 0.3),
+            inset -3px -3px 8px rgba(0, 0, 0, 0.2);
+    }
+    .clay-btn-abort {
+        background: #334155;
+        color: #f87171;
+        box-shadow: 
+            6px 6px 12px rgba(0, 0, 0, 0.3),
+            inset 3px 3px 8px rgba(255, 255, 255, 0.1),
+            inset -3px -3px 8px rgba(0, 0, 0, 0.4);
+    }
+    #hitl-plan-content p { margin: 0 0 10px 0; color: #cbd5e1; font-size: 15px; line-height: 1.6; }
+    #hitl-plan-content strong { color: #38bdf8; font-weight: 700; }
+    #hitl-plan-content ul { padding-left: 20px; margin: 10px 0; color: #94a3b8; }
+    #hitl-plan-content li { margin-bottom: 6px; }
+
+    @keyframes pulse-blue {
+        0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(14, 165, 233, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+    }
+</style>
+<div id="hitl-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 14, 23, 0.75); backdrop-filter: blur(12px); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+    
+    <div class="clay-modal">
+        
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+            <div style="width: 14px; height: 14px; background: #0ea5e9; border-radius: 50%; animation: pulse-blue 2s infinite;"></div>
+            <h2 style="color: #e2e8f0; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 1px;">TACTICAL RESCUE PLAN</h2>
+        </div>
+        
+        <p style="color: #94a3b8; font-size: 15px; margin-bottom: 12px;">AI SWARM HAS DRAFTED AN EVACUATION PROTOCOL FOR <span style="color: #38bdf8; font-weight: 700;">CMD-<span id="hitl-target">10</span></span>.</p>
+        <div id="hitl-plan-content" class="clay-recessed" style="margin-bottom: 28px;">
+            <span style="color:#64748b;">Loading intelligence...</span>
+        </div>
+
+        <p style="color: #64748b; font-size: 12px; font-weight: 700; margin-bottom: 20px; text-align: center; letter-spacing: 1px;">HUMAN COMMANDER AUTHORIZATION REQUIRED</p>
+
+        <div style="display: flex; gap: 20px;">
+            <button id="btn-hitl-abort" class="clay-btn clay-btn-abort">ABORT</button>
+            <button id="btn-hitl-auth" class="clay-btn clay-btn-auth">AUTHORIZE STRIKE</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

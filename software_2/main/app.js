@@ -409,3 +409,66 @@ function stopRTC() {
     if (ctrlPanel) ctrlPanel.classList.remove('active');
     audStrm = null; pendingOffer = null; isRecording = false;
 }
+// Add this to your main dashboard frontend JS
+function setActiveTacticalTarget(soldierId) {
+    const firebaseUrl = "https://sena-kavach-default-rtdb.firebaseio.com/command_state/active_target.json";
+    
+    fetch(firebaseUrl, {
+        method: "PUT", // PUT overwrites the existing value
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(soldierId.toString())
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(`[SYS] Active target updated to: CMD-${soldierId}`);
+    })
+    .catch(error => {
+        console.error("[ERR] Failed to sync command state:", error);
+    });
+}
+// Add this to your dashboard's JavaScript file
+const hitlModal = document.getElementById('hitl-modal');
+const hitlPlanContent = document.getElementById('hitl-plan-content');
+const hitlTarget = document.getElementById('hitl-target');
+const btnAuth = document.getElementById('btn-hitl-auth');
+const btnAbort = document.getElementById('btn-hitl-abort');
+
+const hitlNodeUrl = "https://sena-kavach-default-rtdb.firebaseio.com/command_state/pending_authorization.json";
+
+// 1. Listen for new plans from the Python AI Swarm
+setInterval(() => {
+    fetch(hitlNodeUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.status === "AWAITING_HUMAN") {
+                // A plan has been pushed! Show the modal.
+                hitlTarget.innerText = data.target_id;
+                hitlPlanContent.innerText = data.rescue_plan;
+                hitlModal.style.display = 'flex'; // Reveal the modal
+            } else {
+                // No pending plans, hide modal
+                hitlModal.style.display = 'none';
+            }
+        })
+        .catch(err => console.error(err));
+}, 2000); // Check every 2 seconds
+
+// 2. Handle Commander Clicks
+function updateHitlStatus(newStatus) {
+    // Briefly change UI to show it registered
+    hitlPlanContent.innerText = `TRANSMITTING ${newStatus} COMMAND TO HARDWARE...`;
+    
+    fetch(hitlNodeUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(() => {
+        setTimeout(() => {
+            hitlModal.style.display = 'none'; // Hide modal after sending
+        }, 1000);
+    });
+}
+
+btnAuth.addEventListener('click', () => updateHitlStatus("AUTHORIZED"));
+btnAbort.addEventListener('click', () => updateHitlStatus("ABORTED"));

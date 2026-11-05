@@ -1,0 +1,22 @@
+{
+  "rules": {
+    "personnel": {
+      ".read": true,
+      ".write": true,
+      "$soldier_id": {
+        "commands": {
+          ".indexOn": ["timestamp"]
+        }
+      }
+    },
+    "uav_commands": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["target_lock"]
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

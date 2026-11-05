@@ -1,0 +1,7 @@
+{
+  "name": "My Website",
+  "short_name": "MyApp",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape"
+}

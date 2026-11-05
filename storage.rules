@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // 1. Tactical Optics: Open for the Pi to upload and Dashboard to read
+    match /intel_frames/{allPaths=**} {
+      allow read, write: if true;
+    }
+    
+    // 2. UI Assets: Open for the dashboard to read, but locked from writes
+    match /assets/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // 3. Default Deny: Lock down everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
