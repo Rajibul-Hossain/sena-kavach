@@ -14,7 +14,7 @@ from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription, R
 # --- CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model")
-DB_URL = "https://sena-kavach-default-rtdb.firebaseio.com"
+DB_URL = "add ur own path sir"
 TERMINATE_FLAG = False
 
 # --- WEBRTC AUDIO TRACK ---
