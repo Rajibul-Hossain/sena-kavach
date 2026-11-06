@@ -33,3 +33,66 @@ DEFENCE/
 ├── misc/                   # Real-time database exports and utility scripts
 ├── public/                 # Static assets and public-facing deployment files
 └── [Root Files]            # Firebase configurations, database rules, manifest, and licensing
+```
+
+---
+
+## 🛠️ Technology Stack
+
+**Software & Cloud**
+*   **Frontend:** HTML5, CSS3 (Glassmorphism/Claymorphism UI), JavaScript, WebRTC
+*   **Backend & Cloud:** Firebase (Hosting, Realtime Database, Rules), Node.js
+*   **Artificial Intelligence:** Python, Scikit-learn (Avalanche Prediction), Agentic AI architectures, Vosk (Voice Recognition)
+
+**Hardware & Embedded**
+*   **Microcontrollers:** Arduino Mega, ESP32 / ESP8266, Raspberry Pi (3B/4)
+*   **Sensors & IoT:** MPU6050 IMU, Environmental sensors, LoRa transceivers
+*   **Actuation:** BLDC motors, ESC controllers, Custom UAV quadcopter frames
+
+---
+
+## ⚙️ Getting Started
+
+### Prerequisites
+*   Node.js and npm installed.
+*   Python 3.8+ with pip.
+*   Arduino IDE (with ESP32/ESP8266 board support).
+*   Firebase CLI installed globally (`npm install -g firebase-tools`).
+
+### Installation & Setup
+
+1.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/your-username/sena-kavach.git
+    cd sena-kavach
+    ```
+
+2.  **Initialize Cloud Infrastructure**
+    Ensure you are logged into Firebase and deploy the security rules and hosting environment:
+    ```bash
+    firebase login
+    firebase deploy --only database,hosting
+    ```
+
+3.  **Bootstrapping the AI Agents**
+    Navigate to the AI directory and install required Python dependencies:
+    ```bash
+    cd software_2/agentic_ai
+    pip install -r requirements.txt # (Ensure your local env matches required packages)
+    python agent_command.py
+    ```
+
+4.  **Hardware Flashing**
+    Open the respective `.ino` files located in the `hardware/arduino_codes` directory and flash them to your target microcontrollers. Ensure I2C addresses and pin configurations match your physical wiring for the IMU and deployment poles.
+
+---
+
+## 🔒 Security & Data Compliance
+
+Sena Kavach utilizes strict Firebase Realtime Database rules (`database.rules.json` and `storage.rules`) to ensure that telemetry data can only be written by authenticated field hardware and read by authorized command personnel.
+
+---
+
+## 📄 License
+
+This project is licensed under the terms specified in the `LICENSE` file.
