@@ -63,7 +63,7 @@ DEFENCE/
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/your-username/sena-kavach.git
+    git clone https://github.com/rajibul-hossain/sena-kavach.git
     cd sena-kavach
     ```
 
