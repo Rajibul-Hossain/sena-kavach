@@ -5,13 +5,6 @@ import { getStorage, ref as sRef, listAll, getDownloadURL, uploadBytes } from "h
 if (localStorage.getItem("cmd_auth") !== "true") localStorage.setItem("cmd_auth", "true");
 
 const cfg = {
-    apiKey: "AIzaSyD8VmRxwh6fiQ8msCKhwsAhfScRHaFeW04",
-    authDomain: "sena-kavach.firebaseapp.com",
-    databaseURL: "https://sena-kavach-default-rtdb.firebaseio.com",
-    projectId: "sena-kavach",
-    storageBucket: "sena-kavach.firebasestorage.app",
-    messagingSenderId: "417816652380",
-    appId: "1:417816652380:web:ba3e531724f32831c9d499"
 };
 
 const app = initializeApp(cfg);
