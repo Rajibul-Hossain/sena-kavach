@@ -1,14 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 const firebaseConfig = {
-  apiKey: "AIzaSyD8VmRxwh6fiQ8msCKhwsAhfScRHaFeW04",
-  authDomain: "sena-kavach.firebaseapp.com",
-  databaseURL: "https://sena-kavach-default-rtdb.firebaseio.com",
-  projectId: "sena-kavach",
-  storageBucket: "sena-kavach.firebasestorage.app",
-  messagingSenderId: "417816652380",
-  appId: "1:417816652380:web:ba3e531724f32831c9d499",
-  measurementId: "G-0CFFMT95CY"
+// cant show this stuff to u sir
 };
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
